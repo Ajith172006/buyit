@@ -5,11 +5,33 @@ import { supabase } from '@/lib/supabaseClient';
 
 export default function UserAuthModal() {
   const { state, dispatch, showToast } = useStore();
-  const [step, setStep] = useState(1); // 1: Phone, 2: OTP, 3: Profile
+  
+  // step 1: Google Login Button
+  // step 3: Profile Setup (Phone, Age, Address)
+  const [step, setStep] = useState(1);
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']); // 6-digit real OTP
   const [profile, setProfile] = useState({ name: '', age: '', address: '' });
   const [loading, setLoading] = useState(false);
+
+  // When the modal opens, if the user is already authenticated (but profile is missing), jump to step 3
+  useEffect(() => {
+    if (state.userLoginOpen) {
+      const checkSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setStep(3); // Jump straight to profile completion
+          // Pre-fill name and email if available
+          setProfile(p => ({
+            ...p,
+            name: session.user.user_metadata?.full_name || '',
+          }));
+        } else {
+          setStep(1);
+        }
+      };
+      checkSession();
+    }
+  }, [state.userLoginOpen]);
 
   if (!state.userLoginOpen) return null;
 
@@ -18,108 +40,71 @@ export default function UserAuthModal() {
     setTimeout(() => {
       setStep(1);
       setPhone('');
-      setOtp(['', '', '', '', '', '']);
       setProfile({ name: '', age: '', address: '' });
     }, 300);
   };
 
-  // ── STEP 1: Send real OTP via Supabase ──────────────────────────────
-  const handleSendOtp = async (e) => {
-    e.preventDefault();
-    if (phone.length < 10) {
-      showToast('Please enter a valid 10-digit mobile number.');
-      return;
-    }
+  // ── STEP 1: Google OAuth ────────────────────────────────────────────
+  const handleGoogleLogin = async () => {
     setLoading(true);
-    const fullPhone = `+91${phone}`;
-    const { error } = await supabase.auth.signInWithOtp({ phone: fullPhone });
-    setLoading(false);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+    
     if (error) {
       showToast(`Error: ${error.message}`);
-    } else {
-      setStep(2);
-      showToast('OTP sent! Check your SMS.');
+      setLoading(false);
     }
+    // Note: The page will redirect to Google, so we don't need to setLoading(false) on success
   };
 
-  // ── STEP 2: Verify OTP via Supabase ────────────────────────────────
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    const token = otp.join('');
-    if (token.length < 6) {
-      showToast('Please enter the 6-digit OTP.');
-      return;
-    }
-    setLoading(true);
-    const fullPhone = `+91${phone}`;
-    const { data, error } = await supabase.auth.verifyOtp({
-      phone: fullPhone,
-      token,
-      type: 'sms',
-    });
-    setLoading(false);
-
-    if (error) {
-      showToast(`Invalid OTP: ${error.message}`);
-      return;
-    }
-
-    // Session established — check if profile already saved
-    const userId = data.user?.id;
-    const saved = localStorage.getItem(`buyit_profile_${userId}`);
-    if (saved) {
-      const p = JSON.parse(saved);
-      dispatch({ type: 'USER_LOGIN_SUCCESS' });
-      dispatch({ type: 'UPDATE_USER_PROFILE', profile: p });
-      localStorage.setItem('buyit_user_session', JSON.stringify(p));
-      showToast(`Welcome back, ${p.name}!`);
-      closeAuth();
-    } else {
-      setStep(3);
-    }
-  };
-
-  // ── Resend OTP ──────────────────────────────────────────────────────
-  const handleResend = async () => {
-    setOtp(['', '', '', '', '', '']);
-    const fullPhone = `+91${phone}`;
-    const { error } = await supabase.auth.signInWithOtp({ phone: fullPhone });
-    if (error) {
-      showToast(`Resend failed: ${error.message}`);
-    } else {
-      showToast('OTP resent! Check your SMS.');
-    }
-  };
-
-  // ── STEP 3: Save profile ────────────────────────────────────────────
+  // ── STEP 3: Save profile to MongoDB ──────────────────────────────────
   const handleSaveProfile = async (e) => {
     e.preventDefault();
-    if (!profile.name || !profile.age || !profile.address) {
-      showToast('Please fill all details to continue.');
+    if (!profile.name || !profile.age || !profile.address || phone.length < 10) {
+      showToast('Please fill all details correctly to continue.');
       return;
     }
     setLoading(true);
+    
     const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id;
-    const p = { ...profile, phone, userId };
-    localStorage.setItem(`buyit_profile_${userId}`, JSON.stringify(p));
-    localStorage.setItem('buyit_user_session', JSON.stringify(p));
-    dispatch({ type: 'UPDATE_USER_PROFILE', profile: p });
-    dispatch({ type: 'USER_LOGIN_SUCCESS' });
-    showToast('Profile created! Welcome to BuyIt 🎉');
-    setLoading(false);
-    closeAuth();
-  };
-
-  const handleOtpChange = (index, value) => {
-    if (isNaN(value)) return;
-    const newOtp = [...otp];
-    newOtp[index] = value.substring(value.length - 1);
-    setOtp(newOtp);
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`);
-      if (nextInput) nextInput.focus();
+    if (!user) {
+      showToast('Authentication error. Please login again.');
+      setLoading(false);
+      return;
     }
+
+    try {
+      const res = await fetch('/api/user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          name: profile.name,
+          phone,
+          age: profile.age,
+          address: profile.address,
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        dispatch({ type: 'UPDATE_USER_PROFILE', profile: data.data });
+        dispatch({ type: 'USER_LOGIN_SUCCESS' });
+        showToast('Profile saved successfully! 🎉');
+        closeAuth();
+      } else {
+        showToast(`Error: ${data.message || 'Failed to save profile'}`);
+      }
+    } catch (err) {
+      showToast('Network error while saving profile.');
+      console.error(err);
+    }
+    setLoading(false);
   };
 
   return (
@@ -131,66 +116,24 @@ export default function UserAuthModal() {
           🛍 BuyIt <span>Pro ✦</span>
         </div>
 
-        {/* STEP 1: PHONE */}
+        {/* STEP 1: GOOGLE LOGIN */}
         {step === 1 && (
           <div className="ua-step">
-            <h2>Login or Signup</h2>
-            <p className="ua-sub">Enter your mobile number to continue</p>
-            <form onSubmit={handleSendOtp}>
-              <div className="ua-field">
-                <label>Mobile Number</label>
-                <div className="phone-input">
-                  <span>+91</span>
-                  <input
-                    type="tel"
-                    maxLength="10"
-                    placeholder="Enter 10-digit number"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                    autoFocus
-                  />
-                </div>
-              </div>
-              <button type="submit" className="ua-btn" disabled={phone.length < 10 || loading}>
-                {loading ? 'Sending OTP...' : 'Continue'}
-              </button>
-            </form>
+            <h2>Welcome to BuyIt</h2>
+            <p className="ua-sub">Sign in to continue your shopping journey</p>
+            
+            <button 
+              type="button" 
+              className="ua-btn google-btn" 
+              onClick={handleGoogleLogin} 
+              disabled={loading}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', backgroundColor: '#fff', color: '#333', border: '1px solid #ccc', marginTop: '20px' }}
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={{ width: '20px' }} />
+              {loading ? 'Connecting...' : 'Sign in with Google'}
+            </button>
+            
             <p className="ua-terms">By continuing, you agree to BuyIt's Terms of Use and Privacy Policy.</p>
-          </div>
-        )}
-
-        {/* STEP 2: OTP (6 digits) */}
-        {step === 2 && (
-          <div className="ua-step">
-            <h2>Verify Mobile</h2>
-            <p className="ua-sub">Enter the 6-digit OTP sent to +91 {phone}</p>
-            <form onSubmit={handleVerifyOtp}>
-              <div className="otp-container">
-                {otp.map((digit, i) => (
-                  <input
-                    key={i}
-                    id={`otp-${i}`}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength="1"
-                    value={digit}
-                    onChange={(e) => handleOtpChange(i, e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Backspace' && !digit && i > 0) {
-                        document.getElementById(`otp-${i - 1}`).focus();
-                      }
-                    }}
-                    autoFocus={i === 0}
-                  />
-                ))}
-              </div>
-              <button type="submit" className="ua-btn" disabled={otp.join('').length < 6 || loading}>
-                {loading ? 'Verifying...' : 'Verify & Proceed'}
-              </button>
-            </form>
-            <p className="ua-resend" onClick={handleResend}>
-              Didn't receive code? <span>Resend</span>
-            </p>
           </div>
         )}
 
@@ -211,6 +154,19 @@ export default function UserAuthModal() {
                 />
               </div>
               <div className="ua-field">
+                <label>Mobile Number</label>
+                <div className="phone-input">
+                  <span>+91</span>
+                  <input
+                    type="tel"
+                    maxLength="10"
+                    placeholder="Enter 10-digit number"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                  />
+                </div>
+              </div>
+              <div className="ua-field">
                 <label>Age</label>
                 <input
                   type="number"
@@ -223,12 +179,12 @@ export default function UserAuthModal() {
                 <label>Delivery Address</label>
                 <textarea
                   placeholder="Enter full address..."
-                  rows={3}
+                  rows={2}
                   value={profile.address}
                   onChange={(e) => setProfile({ ...profile, address: e.target.value })}
                 />
               </div>
-              <button type="submit" className="ua-btn" disabled={!profile.name || !profile.age || !profile.address || loading}>
+              <button type="submit" className="ua-btn" disabled={!profile.name || !profile.age || !profile.address || phone.length < 10 || loading}>
                 {loading ? 'Saving...' : 'Start Shopping →'}
               </button>
             </form>

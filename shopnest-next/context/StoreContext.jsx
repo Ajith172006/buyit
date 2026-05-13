@@ -134,15 +134,25 @@ export function StoreProvider({ children }) {
 
   // Supabase auth state listener — hydrates session on load & clears on sign-out
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        const userId = session.user.id;
-        const saved = localStorage.getItem(`buyit_profile_${userId}`);
-        if (saved) {
-          try {
-            const p = JSON.parse(saved);
-            dispatch({ type: 'HYDRATE_USER', profile: p });
-          } catch (e) {}
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user && session.user.email) {
+        try {
+          const res = await fetch(`/api/user?email=${encodeURIComponent(session.user.email)}`);
+          const data = await res.json();
+          if (res.ok && data.success && data.data) {
+            const p = data.data;
+            if (p.phone && p.address) {
+              dispatch({ type: 'HYDRATE_USER', profile: p });
+            } else {
+              // Missing details, open modal to complete profile
+              dispatch({ type: 'OPEN_USER_LOGIN' });
+            }
+          } else {
+            // User not found in DB, open modal to complete profile
+            dispatch({ type: 'OPEN_USER_LOGIN' });
+          }
+        } catch (e) {
+          console.error('Error fetching user profile:', e);
         }
       } else {
         dispatch({ type: 'USER_LOGOUT' });
