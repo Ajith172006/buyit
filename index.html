@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ShopNest - Your Home for Everything. Shop electronics, fashion, mobiles, groceries and more at unbeatable prices.">
+  <title>ShopNest – Your Home for Everything</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Top Bar -->
+<div id="topbar">
+  <div class="logo" onclick="showPage('home')">🛍 ShopNest <span>Pro ✦</span></div>
+  <div class="search-bar" id="search-bar">
+    <input type="text" id="search-input" placeholder="Search for products, brands and more..." oninput="filterProducts()">
+    <button onclick="filterProducts()">🔍</button>
+  </div>
+  <button class="nav-btn" onclick="toggleCart()">🛒 Cart <span id="cart-count">0</span></button>
+  <button class="nav-btn" onclick="showAdmin()">⚙ Admin</button>
+</div>
+
+<!-- Category Navigation -->
+<div id="catnav">
+  <div class="cat-tab active" onclick="setCategory('all',this)">All</div>
+  <div class="cat-tab" onclick="setCategory('Electronics',this)">Electronics</div>
+  <div class="cat-tab" onclick="setCategory('Fashion',this)">Fashion</div>
+  <div class="cat-tab" onclick="setCategory('Mobiles',this)">Mobiles</div>
+  <div class="cat-tab" onclick="setCategory('Appliances',this)">Appliances</div>
+  <div class="cat-tab" onclick="setCategory('Furniture',this)">Furniture</div>
+  <div class="cat-tab" onclick="setCategory('Grocery',this)">Grocery</div>
+  <div class="cat-tab" onclick="setCategory('Beauty',this)">Beauty</div>
+  <div class="cat-tab" onclick="setCategory('Toys',this)">Toys</div>
+  <div class="cat-tab" onclick="setCategory('Sports',this)">Sports</div>
+</div>
+
+<!-- Hero Banner -->
+<div id="hero">
+  <div class="hero-text">
+    <h1>Discover Incredible<br>Deals Every Day 🚀</h1>
+    <p>Up to 80% off on Electronics, Fashion & More</p>
+    <button onclick="document.getElementById('product-grid').scrollIntoView({behavior:'smooth'})">Shop Now →</button>
+  </div>
+  <div class="hero-deals" id="hero-deals"></div>
+</div>
+
+<!-- Offers Strip -->
+<div id="offers">
+  <div class="offer-chip"><span>10% OFF</span> on HDFC Cards</div>
+  <div class="offer-chip"><span>₹500 OFF</span> on orders above ₹2999</div>
+  <div class="offer-chip"><span>FREE</span> Delivery above ₹499</div>
+  <div class="offer-chip"><span>EMI</span> Starting ₹0 cost</div>
+  <div class="offer-chip"><span>EXTRA 5%</span> NestCoins cashback</div>
+  <div class="offer-chip"><span>15% OFF</span> First order on App</div>
+</div>
+
+<!-- Main Content -->
+<div id="content">
+  <!-- Filters Sidebar -->
+  <div id="filters">
+    <h3>Filters</h3>
+    <div class="filter-section">
+      <h4>Price Range</h4>
+      <label class="filter-check"><input type="radio" name="price" onchange="priceFilter(0,500)"> Under ₹500</label>
+      <label class="filter-check"><input type="radio" name="price" onchange="priceFilter(500,2000)"> ₹500 – ₹2,000</label>
+      <label class="filter-check"><input type="radio" name="price" onchange="priceFilter(2000,10000)"> ₹2,000 – ₹10,000</label>
+      <label class="filter-check"><input type="radio" name="price" onchange="priceFilter(10000,999999)"> Above ₹10,000</label>
+      <label class="filter-check"><input type="radio" name="price" onchange="priceFilter(0,999999)"> All Prices</label>
+    </div>
+    <div class="filter-section">
+      <h4>Rating</h4>
+      <label class="filter-check"><input type="radio" name="rating" onchange="ratingFilter(4)"> ★ 4 & above</label>
+      <label class="filter-check"><input type="radio" name="rating" onchange="ratingFilter(3)"> ★ 3 & above</label>
+      <label class="filter-check"><input type="radio" name="rating" onchange="ratingFilter(0)"> All Ratings</label>
+    </div>
+    <div class="filter-section">
+      <h4>Discount</h4>
+      <label class="filter-check"><input type="radio" name="disc" onchange="discFilter(50)"> 50% or more</label>
+      <label class="filter-check"><input type="radio" name="disc" onchange="discFilter(30)"> 30% or more</label>
+      <label class="filter-check"><input type="radio" name="disc" onchange="discFilter(0)"> All</label>
+    </div>
+  </div>
+
+  <!-- Products Section -->
+  <div id="products">
+    <div class="section-title">
+      <span id="section-label">All Products</span>
+      <span class="see-all" onclick="setCategory('all',document.querySelector('.cat-tab'))">See All</span>
+    </div>
+    <div class="sort-bar">
+      <label>Sort by:</label>
+      <select onchange="sortProducts(this.value)">
+        <option value="default">Relevance</option>
+        <option value="price_asc">Price: Low to High</option>
+        <option value="price_desc">Price: High to Low</option>
+        <option value="rating">Customer Rating</option>
+        <option value="discount">Discount</option>
+      </select>
+      <span id="product-count" style="margin-left:auto;font-size:12px;color:#777"></span>
+    </div>
+    <div id="product-grid"></div>
+  </div>
+</div>
+
+<!-- Cart Panel -->
+<div id="cart-panel">
+  <div class="cart-header">
+    <h2>My Cart</h2>
+    <button class="cart-close" onclick="toggleCart()">✕</button>
+  </div>
+  <div class="cart-items" id="cart-items"></div>
+  <div class="cart-footer" id="cart-footer" style="display:none">
+    <div class="cart-total"><span>Total:</span><span id="cart-total">₹0</span></div>
+    <div style="font-size:12px;color:#26a541;margin-bottom:12px">✓ Free Delivery</div>
+    <button class="checkout-btn" onclick="openCheckout()">Proceed to Checkout →</button>
+  </div>
+</div>
+<div id="overlay" onclick="closeAll()"></div>
+
+<!-- Product Detail View -->
+<div id="detail-view" class="hidden">
+  <div class="detail-top">
+    <button class="back-btn" onclick="document.getElementById('detail-view').classList.add('hidden')">← Back</button>
+    <span style="font-size:15px;font-weight:500">Product Details</span>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<!-- Checkout Modal -->
+<div id="checkout-modal">
+  <h2>🛒 Checkout</h2>
+  <div class="checkout-form">
+    <input type="text" id="co-name" placeholder="Full Name">
+    <input type="text" id="co-phone" placeholder="Phone Number">
+    <input type="text" id="co-addr" placeholder="Delivery Address">
+    <input type="text" id="co-pincode" placeholder="Pincode">
+    <select id="co-payment">
+      <option>Online Payment (UPI/Card/Netbanking)</option>
+      <option>Cash on Delivery</option>
+      <option>EMI</option>
+    </select>
+    <button class="place-order-btn" onclick="placeOrder()">Place Order ₹<span id="co-total">0</span></button>
+    <button class="cancel-checkout" onclick="closeCheckout()">Cancel</button>
+  </div>
+</div>
+
+<!-- Admin Panel -->
+<div id="admin-panel" class="hidden">
+  <div class="admin-header">
+    <h1>🛍 ShopNest Admin <span>DASHBOARD</span></h1>
+    <button class="close-admin" onclick="closeAdmin()">✕ Close</button>
+  </div>
+  <div class="admin-body">
+    <div class="admin-sidebar">
+      <div class="admin-menu-item active" onclick="adminTab('dashboard',this)"><span class="icon">📊</span> Dashboard</div>
+      <div class="admin-menu-item" onclick="adminTab('products',this)"><span class="icon">📦</span> Products</div>
+      <div class="admin-menu-item" onclick="adminTab('orders',this)"><span class="icon">🛍</span> Orders</div>
+      <div class="admin-menu-item" onclick="adminTab('customers',this)"><span class="icon">👥</span> Customers</div>
+      <div class="admin-menu-item" onclick="adminTab('analytics',this)"><span class="icon">📈</span> Analytics</div>
+      <div class="admin-menu-item" onclick="adminTab('settings',this)"><span class="icon">⚙</span> Settings</div>
+    </div>
+    <div class="admin-content">
+      <!-- Dashboard -->
+      <div class="admin-section active" id="sec-dashboard">
+        <div class="admin-stats">
+          <div class="stat-card blue"><div class="s-label">Total Revenue</div><div class="s-value">₹12.4L</div><div class="s-change">▲ 18% this month</div></div>
+          <div class="stat-card green"><div class="s-label">Total Orders</div><div class="s-value" id="total-orders-stat">0</div><div class="s-change">▲ 12% this month</div></div>
+          <div class="stat-card orange"><div class="s-label">Products</div><div class="s-value" id="total-products-stat">0</div><div class="s-change">▲ 5 added today</div></div>
+          <div class="stat-card yellow"><div class="s-label">Customers</div><div class="s-value">2,841</div><div class="s-change">▲ 7% this month</div></div>
+        </div>
+        <div class="admin-table-wrap">
+          <h2>Recent Orders <button class="action-btn edit" onclick="adminTab('orders',document.querySelectorAll('.admin-menu-item')[2])">View All</button></h2>
+          <table class="admin-table" id="recent-orders-table"></table>
+        </div>
+        <div class="admin-table-wrap">
+          <h2>Top Products</h2>
+          <table class="admin-table" id="top-products-table"></table>
+        </div>
+      </div>
+
+      <!-- Products -->
+      <div class="admin-section" id="sec-products">
+        <div class="add-product-form">
+          <h2>➕ Add New Product</h2>
+          <div class="form-grid">
+            <div class="form-group"><label>Product Name</label><input type="text" id="fp-name" placeholder="e.g. Samsung Galaxy S24"></div>
+            <div class="form-group"><label>Brand</label><input type="text" id="fp-brand" placeholder="e.g. Samsung"></div>
+            <div class="form-group"><label>Category</label>
+              <select id="fp-cat"><option>Electronics</option><option>Fashion</option><option>Mobiles</option><option>Appliances</option><option>Furniture</option><option>Grocery</option><option>Beauty</option><option>Toys</option><option>Sports</option></select>
+            </div>
+            <div class="form-group"><label>Price (₹)</label><input type="number" id="fp-price" placeholder="e.g. 29999"></div>
+            <div class="form-group"><label>MRP (₹)</label><input type="number" id="fp-mrp" placeholder="e.g. 39999"></div>
+            <div class="form-group"><label>Rating (1-5)</label><input type="number" id="fp-rating" min="1" max="5" step="0.1" placeholder="e.g. 4.2"></div>
+            <div class="form-group"><label>Emoji Icon</label><input type="text" id="fp-emoji" placeholder="e.g. 📱"></div>
+            <div class="form-group"><label>Stock</label><input type="number" id="fp-stock" placeholder="e.g. 100"></div>
+            <div class="form-group full"><label>Description</label><textarea id="fp-desc" rows="3" style="resize:vertical" placeholder="Product description..."></textarea></div>
+          </div>
+          <button class="form-submit" onclick="addProduct()">Add Product</button>
+        </div>
+        <div class="admin-table-wrap">
+          <h2>All Products (<span id="prod-count-admin">0</span>)</h2>
+          <table class="admin-table" id="all-products-table"></table>
+        </div>
+      </div>
+
+      <!-- Orders -->
+      <div class="admin-section" id="sec-orders">
+        <div class="admin-table-wrap">
+          <h2>All Orders (<span id="order-count-admin">0</span>)</h2>
+          <table class="admin-table" id="all-orders-table"></table>
+        </div>
+      </div>
+
+      <!-- Customers -->
+      <div class="admin-section" id="sec-customers">
+        <div class="admin-table-wrap">
+          <h2>Customers (2841)</h2>
+          <table class="admin-table" id="customers-table"></table>
+        </div>
+      </div>
+
+      <!-- Analytics -->
+      <div class="admin-section" id="sec-analytics">
+        <div class="admin-stats">
+          <div class="stat-card blue"><div class="s-label">Avg Order Value</div><div class="s-value">₹3,240</div><div class="s-change">▲ 5%</div></div>
+          <div class="stat-card green"><div class="s-label">Conversion Rate</div><div class="s-value">3.8%</div><div class="s-change">▲ 0.4%</div></div>
+          <div class="stat-card orange"><div class="s-label">Return Rate</div><div class="s-value">2.1%</div><div class="s-change">▼ 0.3%</div></div>
+          <div class="stat-card yellow"><div class="s-label">Cart Abandon</div><div class="s-value">67%</div><div class="s-change">▼ 2%</div></div>
+        </div>
+        <div class="admin-table-wrap">
+          <h2>Category Performance</h2>
+          <div id="analytics-chart" style="padding:12px 0"></div>
+        </div>
+        <div class="admin-table-wrap">
+          <h2>Monthly Revenue Trend</h2>
+          <div id="revenue-chart" style="padding:12px 0"></div>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="admin-section" id="sec-settings">
+        <div class="add-product-form">
+          <h2>⚙ Store Settings</h2>
+          <div class="form-grid">
+            <div class="form-group"><label>Store Name</label><input type="text" value="ShopNest"></div>
+            <div class="form-group"><label>Currency</label><select><option>INR (₹)</option><option>USD ($)</option></select></div>
+            <div class="form-group"><label>Free Delivery Above</label><input type="number" value="499"></div>
+            <div class="form-group"><label>GST Rate (%)</label><input type="number" value="18"></div>
+            <div class="form-group full"><label>Store Description</label><textarea rows="2">India's fastest growing online marketplace</textarea></div>
+          </div>
+          <button class="form-submit" onclick="showToast('Settings saved!')">Save Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast"></div>
+
+<!-- Scripts -->
+<script src="data.js"></script>
+<script src="utils.js"></script>
+<script src="cart.js"></script>
+<script src="product.js"></script>
+<script src="filter.js"></script>
+<script src="checkout.js"></script>
+<script src="admin.js"></script>
+<script src="app.js"></script>
+<script src="main.js"></script>
+
+</body>
+</html>
