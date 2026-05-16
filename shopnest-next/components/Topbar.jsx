@@ -6,6 +6,9 @@ import { supabase } from '@/lib/supabaseClient';
 export default function Topbar() {
   const { state, dispatch, cartCount } = useStore();
   const [menuOpen, setMenuOpen] = useState(false);
+  const locationText = state.userProfile?.address
+    ? `HOME ${state.userProfile.address}`
+    : 'HOME near eswara supper market reach an...';
 
   return (
     <>
@@ -67,7 +70,7 @@ export default function Topbar() {
         
         <div className="mobile-location-bar">
           <div className="loc-icon">🏠</div>
-          <div className="loc-text"><strong>HOME</strong> near eswara supper market reach an...</div>
+          <div className="loc-text"><strong>HOME</strong> {state.userProfile?.address || 'near eswara supper market reach an...'}</div>
           <div className="loc-arrow">⌄</div>
         </div>
 
