@@ -17,6 +17,8 @@ import AdminPanel from '@/components/admin/AdminPanel';
 import AdminLoginModal from '@/components/admin/AdminLoginModal';
 import UserAuthModal from '@/components/UserAuthModal';
 import Toast from '@/components/Toast';
+import MobileNav from '@/components/MobileNav';
+import HorizontalProducts from '@/components/HorizontalProducts';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -100,6 +102,7 @@ export default function HomePage() {
       <Topbar />
       <CategoryNav />
       <HeroBanner />
+      <HorizontalProducts />
       <OfferStrip />
       <div id="content">
         <FilterSidebar />
@@ -112,6 +115,7 @@ export default function HomePage() {
       <AdminLoginModal />
       <UserAuthModal />
       <Toast />
+      <MobileNav />
     </div>
   );
 }

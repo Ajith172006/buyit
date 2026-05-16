@@ -38,7 +38,10 @@ export default function UserAuthModal() {
 
   if (!state.userLoginOpen) return null;
 
-  const closeAuth = () => {
+  const closeAuth = async () => {
+    if (step === 3 && !state.userAuthenticated) {
+      await supabase.auth.signOut();
+    }
     dispatch({ type: 'CLOSE_USER_LOGIN' });
     setTimeout(() => {
       setStep(1);

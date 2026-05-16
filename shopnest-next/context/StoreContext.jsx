@@ -29,6 +29,7 @@ const initialState = {
   userAuthenticated: false,
   userLoginOpen: false,
   userProfile: null,
+  authLoading: true,
 };
 
 function reducer(state, action) {
@@ -124,6 +125,8 @@ function reducer(state, action) {
       return { ...state, userProfile: action.profile };
     case 'HYDRATE_USER':
       return { ...state, userAuthenticated: true, userProfile: action.profile };
+    case 'SET_AUTH_LOADING':
+      return { ...state, authLoading: action.loading };
     default:
       return state;
   }
@@ -135,6 +138,7 @@ export function StoreProvider({ children }) {
   // Supabase auth state listener — hydrates session on load & clears on sign-out
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      dispatch({ type: 'SET_AUTH_LOADING', loading: true });
       if (session?.user && session.user.email) {
         try {
           const res = await fetch(`/api/user?email=${encodeURIComponent(session.user.email)}`);
@@ -142,6 +146,7 @@ export function StoreProvider({ children }) {
           if (!res.ok) {
             // API error (e.g. 404 user not found, or 500 db error), user needs to setup profile
             dispatch({ type: 'OPEN_USER_LOGIN' });
+            dispatch({ type: 'SET_AUTH_LOADING', loading: false });
             return;
           }
 
@@ -165,6 +170,7 @@ export function StoreProvider({ children }) {
       } else {
         dispatch({ type: 'USER_LOGOUT' });
       }
+      dispatch({ type: 'SET_AUTH_LOADING', loading: false });
     });
     return () => subscription.unsubscribe();
   }, []);
