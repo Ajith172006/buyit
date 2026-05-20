@@ -2,6 +2,27 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
 
+// Get all orders (Admin only theoretically, but we'll leave it open for now)
+router.get('/', async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .populate('items.productId', 'name price image')
+      .populate('userId', 'name email phone')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: orders.length,
+      data: orders,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
 // Create order
 router.post('/', async (req, res) => {
   try {

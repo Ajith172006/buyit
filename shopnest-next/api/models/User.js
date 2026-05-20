@@ -37,6 +37,18 @@ const UserSchema = new mongoose.Schema(
       pincode: String,
       country: String,
     },
+    savedAddresses: [
+      {
+        label: { type: String, default: 'Home' },
+        doorNo: String,
+        street: String,
+        city: String,
+        district: String,
+        state: String,
+        pincode: String,
+        isDefault: { type: Boolean, default: false },
+      }
+    ],
     role: {
       type: String,
       enum: ['user', 'admin'],

@@ -11,7 +11,8 @@ export default function UserAuthModal() {
   const [step, setStep] = useState(1);
   const [checkingSession, setCheckingSession] = useState(true);
   const [phone, setPhone] = useState('');
-  const [profile, setProfile] = useState({ name: '', age: '', address: '' });
+  const [profile, setProfile] = useState({ name: '', age: '' });
+  const [address, setAddress] = useState({ doorNo: '', street: '', city: '', district: '', state: '', pincode: '' });
   const [loading, setLoading] = useState(false);
 
   // When the modal opens, if the user is already authenticated (but profile is missing), jump to step 3
@@ -46,7 +47,8 @@ export default function UserAuthModal() {
     setTimeout(() => {
       setStep(1);
       setPhone('');
-      setProfile({ name: '', age: '', address: '' });
+      setProfile({ name: '', age: '' });
+      setAddress({ doorNo: '', street: '', city: '', district: '', state: '', pincode: '' });
     }, 300);
   };
 
@@ -70,7 +72,7 @@ export default function UserAuthModal() {
   // ── STEP 3: Save profile to MongoDB ──────────────────────────────────
   const handleSaveProfile = async (e) => {
     e.preventDefault();
-    if (!profile.name || !profile.age || !profile.address || phone.length < 10) {
+    if (!profile.name || !profile.age || !address.doorNo || !address.street || !address.city || !address.district || !address.state || !address.pincode || phone.length < 10) {
       showToast('Please fill all details correctly to continue.');
       return;
     }
@@ -92,7 +94,7 @@ export default function UserAuthModal() {
           name: profile.name,
           phone,
           age: profile.age,
-          address: profile.address,
+          address,
         })
       });
       
@@ -190,14 +192,16 @@ export default function UserAuthModal() {
               </div>
               <div className="ua-field">
                 <label>Delivery Address</label>
-                <textarea
-                  placeholder="Enter full address..."
-                  rows={2}
-                  value={profile.address}
-                  onChange={(e) => setProfile({ ...profile, address: e.target.value })}
-                />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <input type="text" placeholder="Door No / Flat" value={address.doorNo} onChange={e => setAddress({ ...address, doorNo: e.target.value })} />
+                  <input type="text" placeholder="Street / Area" value={address.street} onChange={e => setAddress({ ...address, street: e.target.value })} />
+                  <input type="text" placeholder="City" value={address.city} onChange={e => setAddress({ ...address, city: e.target.value })} />
+                  <input type="text" placeholder="District" value={address.district} onChange={e => setAddress({ ...address, district: e.target.value })} />
+                  <input type="text" placeholder="State" value={address.state} onChange={e => setAddress({ ...address, state: e.target.value })} />
+                  <input type="text" placeholder="Pincode" value={address.pincode} onChange={e => setAddress({ ...address, pincode: e.target.value })} />
+                </div>
               </div>
-              <button type="submit" className="ua-btn" disabled={!profile.name || !profile.age || !profile.address || phone.length < 10 || loading}>
+              <button type="submit" className="ua-btn" disabled={!profile.name || !profile.age || !address.doorNo || !address.street || !address.city || !address.state || !address.pincode || phone.length < 10 || loading}>
                 {loading ? 'Saving...' : 'Start Shopping →'}
               </button>
             </form>

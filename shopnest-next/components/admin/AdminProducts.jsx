@@ -13,33 +13,76 @@ export default function AdminProducts() {
 
   const handleChange = (field, val) => setForm(f => ({ ...f, [field]: val }));
 
-  const addProduct = () => {
+  const addProduct = async () => {
     if (!form.name.trim()) { showToast('Please enter a product name'); return; }
     const price = parseInt(form.price) || 999;
     const mrp = parseInt(form.mrp) || 1499;
     const product = {
-      id: state.products.length + 100 + Math.floor(Math.random() * 100),
       name: form.name,
       brand: form.brand || 'Generic',
       category: form.category,
       price,
-      mrp,
+      originalPrice: mrp,
       discount: Math.round((mrp - price) / mrp * 100),
       rating: parseFloat(form.rating) || 4.0,
-      reviews: Math.floor(Math.random() * 1000) + 100,
       image: form.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&q=80',
       stock: parseInt(form.stock) || 50,
-      desc: form.desc || 'Quality product',
+      description: form.desc || 'Quality product',
     };
-    dispatch({ type: 'ADD_PRODUCT', product });
-    showToast(`✅ Product "${form.name}" added!`);
-    setForm({ name:'',brand:'',category:'Electronics',price:'',mrp:'',rating:'',image:'',stock:'',desc:'' });
+    
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${apiUrl}/api/products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(product)
+      });
+      const json = await res.json();
+      
+      if (res.ok && json.success) {
+        // Map backend format to frontend format
+        const newP = json.data;
+        const mappedProduct = {
+          id: newP._id,
+          name: newP.name,
+          brand: newP.brand || 'Generic',
+          category: newP.category,
+          price: newP.price,
+          mrp: newP.originalPrice,
+          discount: newP.discount,
+          rating: newP.rating,
+          reviews: newP.reviews?.length || 0,
+          image: newP.image,
+          stock: newP.stock,
+          desc: newP.description,
+        };
+        dispatch({ type: 'ADD_PRODUCT', product: mappedProduct });
+        showToast(`✅ Product "${form.name}" added!`);
+        setForm({ name:'',brand:'',category:'Electronics',price:'',mrp:'',rating:'',image:'',stock:'',desc:'' });
+      } else {
+        showToast(json.message || 'Error adding product');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error adding product');
+    }
   };
 
-  const deleteProduct = (id) => {
+  const deleteProduct = async (id) => {
     if (!confirm('Delete this product?')) return;
-    dispatch({ type: 'DELETE_PRODUCT', id });
-    showToast('Product deleted');
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${apiUrl}/api/products/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        dispatch({ type: 'DELETE_PRODUCT', id });
+        showToast('Product deleted');
+      } else {
+        showToast('Error deleting product');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error deleting product');
+    }
   };
 
   const editProduct = (id) => {

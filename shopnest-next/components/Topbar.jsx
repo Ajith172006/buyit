@@ -8,7 +8,7 @@ export default function Topbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const locationText = state.userProfile?.address
     ? `HOME ${state.userProfile.address}`
-    : 'HOME near eswara supper market reach an...';
+    : 'Select delivery location';
 
   return (
     <>
@@ -34,10 +34,8 @@ export default function Topbar() {
               ⏳ Loading...
             </button>
           ) : state.userAuthenticated ? (
-            <button className="nav-btn" onClick={async () => {
-              await supabase.auth.signOut();
-              localStorage.removeItem('buyit_user_session');
-              dispatch({ type: 'USER_LOGOUT' });
+            <button className="nav-btn" onClick={() => {
+              dispatch({ type: 'OPEN_USER_PROFILE' });
               setMenuOpen(false);
             }}>
               👤 {state.userProfile?.name?.split(' ')[0] || 'User'}
@@ -70,7 +68,7 @@ export default function Topbar() {
         
         <div className="mobile-location-bar">
           <div className="loc-icon">🏠</div>
-          <div className="loc-text"><strong>HOME</strong> {state.userProfile?.address || 'near eswara supper market reach an...'}</div>
+          <div className="loc-text"><strong>HOME</strong> {state.userProfile?.address || 'Select delivery location'}</div>
           <div className="loc-arrow">⌄</div>
         </div>
 

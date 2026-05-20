@@ -9,7 +9,9 @@ const StoreContext = createContext(null);
 const initialState = {
   products: initialProducts,
   cart: [],
-  orders: [],
+  orders: [], // User's own orders
+  adminOrders: [], // All orders for admin
+  wishlist: [],
   // UI state
   activeCategory: 'all',
   activeSearch: '',
@@ -18,6 +20,7 @@ const initialState = {
   minRating: 0,
   minDiscount: 0,
   sortMode: 'default',
+  selectedBrands: [],
   // Panels
   cartOpen: false,
   checkoutOpen: false,
@@ -28,6 +31,7 @@ const initialState = {
   toast: '',
   userAuthenticated: false,
   userLoginOpen: false,
+  userProfileOpen: false,
   userProfile: null,
   authLoading: true,
 };
@@ -56,10 +60,32 @@ function reducer(state, action) {
     case 'PLACE_ORDER':
       return {
         ...state,
-        orders: [...state.orders, action.order],
+        orders: [action.order, ...state.orders],
         cart: [],
         checkoutOpen: false,
         cartOpen: false,
+      };
+    case 'SET_PRODUCTS':
+      return { ...state, products: action.products };
+    case 'SET_ADMIN_ORDERS':
+      return { ...state, adminOrders: action.orders };
+    case 'TOGGLE_BRAND': {
+      const updatedBrands = state.selectedBrands.includes(action.brand)
+        ? state.selectedBrands.filter(b => b !== action.brand)
+        : [...state.selectedBrands, action.brand];
+      return { ...state, selectedBrands: updatedBrands };
+    }
+    case 'CLEAR_FILTERS':
+      return {
+        ...state,
+        activeCategory: 'all',
+        activeSearch: '',
+        priceMin: 0,
+        priceMax: 999999,
+        minRating: 0,
+        minDiscount: 0,
+        sortMode: 'default',
+        selectedBrands: [],
       };
     case 'SET_CATEGORY':
       return { ...state, activeCategory: action.category };
@@ -120,13 +146,24 @@ function reducer(state, action) {
     case 'USER_LOGIN_SUCCESS':
       return { ...state, userAuthenticated: true, userLoginOpen: false };
     case 'USER_LOGOUT':
-      return { ...state, userAuthenticated: false, userProfile: null };
+      return { ...state, userAuthenticated: false, userProfile: null, wishlist: [] };
     case 'UPDATE_USER_PROFILE':
-      return { ...state, userProfile: action.profile };
+      return { ...state, userProfile: action.profile, wishlist: action.profile?.wishlist || state.wishlist };
     case 'HYDRATE_USER':
-      return { ...state, userAuthenticated: true, userProfile: action.profile };
+      return { ...state, userAuthenticated: true, userProfile: action.profile, wishlist: action.profile?.wishlist || [] };
+    case 'TOGGLE_WISHLIST': {
+      const exists = state.wishlist.includes(action.id);
+      return {
+        ...state,
+        wishlist: exists ? state.wishlist.filter(id => id !== action.id) : [...state.wishlist, action.id]
+      };
+    }
     case 'SET_AUTH_LOADING':
       return { ...state, authLoading: action.loading };
+    case 'OPEN_USER_PROFILE':
+      return { ...state, userProfileOpen: true };
+    case 'CLOSE_USER_PROFILE':
+      return { ...state, userProfileOpen: false };
     default:
       return state;
   }
@@ -175,6 +212,58 @@ export function StoreProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Fetch products from MongoDB
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const res = await fetch(`${apiUrl}/api/products`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            dispatch({ type: 'SET_PRODUCTS', products: json.data });
+          }
+        } else {
+          console.error('Failed to fetch products from backend');
+        }
+      } catch (err) {
+        console.error('Error fetching products:', err);
+      }
+    }
+    fetchProducts();
+  }, []);
+
+  // Fetch admin orders when admin is authenticated
+  useEffect(() => {
+    async function fetchAdminOrders() {
+      if (!state.adminAuthenticated) return;
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const res = await fetch(`${apiUrl}/api/orders`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            // Map the backend orders to the format expected by the admin panel
+            const mappedOrders = json.data.map(o => ({
+              id: o._id,
+              customer: o.userId?.name || 'Guest',
+              phone: o.userId?.phone || '',
+              items: o.items.reduce((acc, i) => acc + i.quantity, 0),
+              total: o.totalAmount,
+              payment: o.paymentMethod || 'Online',
+              date: new Date(o.createdAt).toLocaleDateString(),
+              status: o.orderStatus || 'pending'
+            }));
+            dispatch({ type: 'SET_ADMIN_ORDERS', orders: mappedOrders });
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching admin orders:', err);
+      }
+    }
+    fetchAdminOrders();
+  }, [state.adminAuthenticated]);
+
   const getFiltered = useCallback(() => {
     let arr = state.products.filter(p => {
       if (state.activeCategory !== 'all' && p.category !== state.activeCategory) return false;
@@ -185,6 +274,7 @@ export function StoreProvider({ children }) {
       if (p.price < state.priceMin || p.price > state.priceMax) return false;
       if (p.rating < state.minRating) return false;
       if (p.discount < state.minDiscount) return false;
+      if (state.selectedBrands.length > 0 && !state.selectedBrands.includes(p.brand)) return false;
       return true;
     });
     if (state.sortMode === 'price_asc') arr.sort((a, b) => a.price - b.price);
@@ -201,7 +291,9 @@ export function StoreProvider({ children }) {
 
   const cartTotal = state.cart.reduce((s, c) => s + c.price * c.qty, 0);
   const cartCount = state.cart.reduce((s, c) => s + c.qty, 0);
-  const allOrders = [...sampleOrders, ...state.orders];
+  
+  // Remove sampleOrders and use fetched adminOrders
+  const allOrders = state.adminOrders;
 
   return (
     <StoreContext.Provider value={{ state, dispatch, getFiltered, showToast, cartTotal, cartCount, allOrders }}>

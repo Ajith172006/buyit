@@ -16,11 +16,45 @@ export default function ProductCard({ product: p }) {
     showToast('Added to cart! 🛒');
   };
 
+  const isWishlisted = state.wishlist?.includes(p.id);
+
+  const handleWishlist = async (e) => {
+    e.stopPropagation();
+    if (!state.userAuthenticated) {
+      showToast('Please login to wishlist items.');
+      dispatch({ type: 'OPEN_USER_LOGIN' });
+      return;
+    }
+    dispatch({ type: 'TOGGLE_WISHLIST', id: p.id });
+    
+    try {
+      await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: state.userProfile.email, productId: p.id })
+      });
+    } catch (err) {
+      console.error('Wishlist error', err);
+    }
+  };
+
   return (
     <div
       className="product-card"
       onClick={() => dispatch({ type: 'SHOW_DETAIL', id: p.id })}
     >
+      <div 
+        onClick={handleWishlist}
+        style={{
+          position: 'absolute', top: '10px', right: '10px', fontSize: '20px', 
+          cursor: 'pointer', zIndex: 10, transition: 'transform 0.2s',
+          color: isWishlisted ? '#ef4444' : '#9ca3af'
+        }}
+        title="Wishlist"
+      >
+        {isWishlisted ? '❤️' : '🤍'}
+      </div>
+
       {p.discount >= 30 && <div className="badge">{p.discount}% OFF</div>}
 
       <div className="p-img">

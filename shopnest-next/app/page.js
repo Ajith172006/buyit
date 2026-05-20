@@ -16,6 +16,7 @@ import ProductDetail from '@/components/ProductDetail';
 import AdminPanel from '@/components/admin/AdminPanel';
 import AdminLoginModal from '@/components/admin/AdminLoginModal';
 import UserAuthModal from '@/components/UserAuthModal';
+import UserProfileModal from '@/components/UserProfileModal';
 import Toast from '@/components/Toast';
 import MobileNav from '@/components/MobileNav';
 import HorizontalProducts from '@/components/HorizontalProducts';
@@ -114,6 +115,7 @@ export default function HomePage() {
       <AdminPanel />
       <AdminLoginModal />
       <UserAuthModal />
+      <UserProfileModal />
       <Toast />
       <MobileNav />
     </div>

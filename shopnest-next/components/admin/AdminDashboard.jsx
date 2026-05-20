@@ -5,7 +5,13 @@ import { formatNumber } from '@/lib/utils';
 export default function AdminDashboard({ onViewOrders }) {
   const { state, allOrders } = useStore();
   const topProducts = [...state.products].sort((a, b) => b.reviews - a.reviews).slice(0, 5);
-  const recentOrders = allOrders.slice(-8);
+  const recentOrders = allOrders ? allOrders.slice(0, 8) : [];
+  
+  // Dynamic Calculations
+  const totalRevenue = allOrders ? allOrders.reduce((sum, o) => sum + (o.total || 0), 0) : 0;
+  const numOrders = allOrders ? allOrders.length : 0;
+  const numProducts = state.products.length;
+  const numCustomers = allOrders ? new Set(allOrders.map(o => o.customer)).size : 0;
 
   const statusClass = (s) =>
     s === 'delivered' ? 'delivered' : s === 'shipped' ? 'shipped' : s === 'pending' ? 'pending' : 'cancelled';
@@ -15,22 +21,22 @@ export default function AdminDashboard({ onViewOrders }) {
       <div className="admin-stats">
         <div className="stat-card blue">
           <div className="s-label">Total Revenue</div>
-          <div className="s-value">₹12.4L</div>
+          <div className="s-value">₹{formatNumber(totalRevenue)}</div>
           <div className="s-change">▲ 18% this month</div>
         </div>
         <div className="stat-card green">
           <div className="s-label">Total Orders</div>
-          <div className="s-value" id="total-orders-stat">{allOrders.length}</div>
+          <div className="s-value" id="total-orders-stat">{numOrders}</div>
           <div className="s-change">▲ 12% this month</div>
         </div>
         <div className="stat-card orange">
           <div className="s-label">Products</div>
-          <div className="s-value" id="total-products-stat">{state.products.length}</div>
+          <div className="s-value" id="total-products-stat">{numProducts}</div>
           <div className="s-change">▲ 5 added today</div>
         </div>
         <div className="stat-card yellow">
           <div className="s-label">Customers</div>
-          <div className="s-value">2,841</div>
+          <div className="s-value">{numCustomers}</div>
           <div className="s-change">▲ 7% this month</div>
         </div>
       </div>

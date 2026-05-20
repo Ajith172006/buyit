@@ -1,9 +1,16 @@
 'use client';
 import { useStore } from '@/context/StoreContext';
 import { formatNumber } from '@/lib/utils';
+import { useState } from 'react';
+
+
 
 export default function ProductDetail() {
   const { state, dispatch, showToast } = useStore();
+  const [reviewText, setReviewText] = useState('');
+  const [reviewRating, setReviewRating] = useState(5);
+  const [submittingReview, setSubmittingReview] = useState(false);
+
   const p = state.products.find(x => x.id === state.detailProductId);
 
   if (!p || state.detailProductId === null) return null;
@@ -17,6 +24,68 @@ export default function ProductDetail() {
     dispatch({ type: 'ADD_TO_CART', id: p.id });
     showToast('Added to cart! 🛒');
     dispatch({ type: 'HIDE_DETAIL' });
+  };
+
+  const isWishlisted = state.wishlist?.includes(p.id);
+
+  const handleWishlist = async () => {
+    if (!state.userAuthenticated) {
+      showToast('Please login to wishlist items.');
+      dispatch({ type: 'OPEN_USER_LOGIN' });
+      return;
+    }
+    dispatch({ type: 'TOGGLE_WISHLIST', id: p.id });
+    
+    try {
+      await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: state.userProfile.email, productId: p.id })
+      });
+    } catch (err) {
+      console.error('Wishlist error', err);
+    }
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!state.userAuthenticated) {
+      showToast('Please login to review items.');
+      dispatch({ type: 'OPEN_USER_LOGIN' });
+      return;
+    }
+    if (!reviewText.trim()) {
+      showToast('Please write a review.');
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: state.userProfile.email, 
+          productId: p.id,
+          rating: reviewRating,
+          text: reviewText
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Review submitted successfully! ⭐');
+        setReviewText('');
+        // To immediately show it, we can re-fetch products or rely on the user closing and reopening
+        // Or we can dispatch an action to update the product in global state
+        dispatch({ type: 'SET_PRODUCTS', products: state.products.map(prod => prod.id === p.id ? data.data : prod) });
+      } else {
+        showToast(data.message || 'Failed to submit review');
+      }
+    } catch (err) {
+      console.error('Review error', err);
+      showToast('An error occurred');
+    }
+    setSubmittingReview(false);
   };
 
   const handleBuyNow = () => {
@@ -57,7 +126,16 @@ export default function ProductDetail() {
           <div className="detail-brand">
             {p.brand} <span style={{ color: '#7c3aed', fontSize: '12px' }}>★ Verified Seller</span>
           </div>
-          <h1>{p.name}</h1>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <h1>{p.name}</h1>
+            <div 
+              onClick={handleWishlist}
+              style={{ fontSize: '28px', cursor: 'pointer', color: isWishlisted ? '#ef4444' : '#9ca3af' }}
+              title="Wishlist"
+            >
+              {isWishlisted ? '❤️' : '🤍'}
+            </div>
+          </div>
           <div className="detail-rating-bar">
             <span className="stars" style={{ background:'#388e3c',color:'#fff',padding:'4px 10px',borderRadius:'4px',fontWeight:700 }}>
               {p.rating} ★
@@ -92,6 +170,54 @@ export default function ProductDetail() {
             <span>↩ 7 Day Return</span>
             <span>✓ Top Brand</span>
             <span>🛡 1 Year Warranty</span>
+          </div>
+
+          <div style={{ marginTop: '30px', borderTop: '1px solid #e5e7eb', paddingTop: '20px' }}>
+            <h3>Customer Reviews</h3>
+            {p.reviews && p.reviews.length > 0 ? (
+              <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {p.reviews.map((r, i) => (
+                  <div key={i} style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <strong style={{ fontSize: '14px' }}>{r.user}</strong>
+                      <span style={{ fontSize: '12px', color: '#9ca3af' }}>{new Date(r.date).toLocaleDateString()}</span>
+                    </div>
+                    <div style={{ color: '#fbbf24', fontSize: '14px', marginBottom: '6px' }}>
+                      {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#4b5563', lineHeight: 1.5 }}>{r.text}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ marginTop: '10px', fontSize: '13px', color: '#6b7280' }}>No reviews yet.</p>
+            )}
+
+            {state.userAuthenticated && (
+              <form onSubmit={handleSubmitReview} style={{ marginTop: '24px', background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                <h4 style={{ marginBottom: '12px', fontSize: '14px' }}>Write a Review</h4>
+                <div style={{ marginBottom: '10px' }}>
+                  <label style={{ fontSize: '13px', marginRight: '10px' }}>Rating:</label>
+                  <select value={reviewRating} onChange={e => setReviewRating(Number(e.target.value))} style={{ padding: '6px', borderRadius: '6px', border: '1px solid #ccc' }}>
+                    <option value={5}>5 Stars - Excellent</option>
+                    <option value={4}>4 Stars - Good</option>
+                    <option value={3}>3 Stars - Average</option>
+                    <option value={2}>2 Stars - Poor</option>
+                    <option value={1}>1 Star - Terrible</option>
+                  </select>
+                </div>
+                <textarea 
+                  value={reviewText} 
+                  onChange={e => setReviewText(e.target.value)}
+                  placeholder="Share your experience with this product..."
+                  rows={3}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '13px', fontFamily: 'Inter', outline: 'none', marginBottom: '10px' }}
+                />
+                <button type="submit" disabled={submittingReview} style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                  {submittingReview ? 'Submitting...' : 'Submit Review'}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </div>

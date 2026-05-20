@@ -23,14 +23,19 @@ export async function POST(req) {
       user.age = age || user.age;
       
       // Merge address
-      if (address) {
-        user.address = {
-          street: address, // Saving the simple text address to street
-          city: user.address?.city,
-          state: user.address?.state,
-          pincode: user.address?.pincode,
-          country: user.address?.country,
+      if (address && address.street) {
+        const newAddress = {
+          label: address.label || 'Home',
+          doorNo: address.doorNo,
+          street: address.street,
+          city: address.city,
+          district: address.district,
+          state: address.state,
+          pincode: address.pincode,
+          isDefault: user.savedAddresses?.length === 0,
         };
+        if (!user.savedAddresses) user.savedAddresses = [];
+        user.savedAddresses.push(newAddress);
       }
 
       await user.save();
@@ -41,7 +46,7 @@ export async function POST(req) {
         email,
         phone,
         age,
-        address: address ? { street: address } : {},
+        savedAddresses: address && address.street ? [{ label: 'Home', ...address, isDefault: true }] : [],
         isVerified: true, // Google auth implies verified email
       });
       await user.save();
@@ -56,7 +61,11 @@ export async function POST(req) {
         email: user.email,
         phone: user.phone,
         age: user.age,
-        address: user.address?.street || '',
+        savedAddresses: user.savedAddresses || [],
+        wishlist: user.wishlist || [],
+        address: user.savedAddresses && user.savedAddresses.length > 0 
+          ? `${user.savedAddresses[0].doorNo}, ${user.savedAddresses[0].street}, ${user.savedAddresses[0].city}` 
+          : user.address?.street || '',
       },
     }, { status: 200 });
 
@@ -92,7 +101,11 @@ export async function GET(req) {
         email: user.email,
         phone: user.phone,
         age: user.age,
-        address: user.address?.street || '',
+        savedAddresses: user.savedAddresses || [],
+        wishlist: user.wishlist || [],
+        address: user.savedAddresses && user.savedAddresses.length > 0 
+          ? `${user.savedAddresses[0].doorNo}, ${user.savedAddresses[0].street}, ${user.savedAddresses[0].city}` 
+          : user.address?.street || '',
       },
     }, { status: 200 });
 

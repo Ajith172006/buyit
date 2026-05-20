@@ -8,9 +8,24 @@ export default function AdminOrders() {
   const statusClass = (s) =>
     s === 'delivered' ? 'delivered' : s === 'shipped' ? 'shipped' : s === 'pending' ? 'pending' : 'cancelled';
 
-  const updateStatus = (id, status) => {
-    dispatch({ type: 'UPDATE_ORDER_STATUS', id, status });
-    showToast(`Order ${id} → ${status}`);
+  const updateStatus = async (id, status) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${apiUrl}/api/orders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderStatus: status })
+      });
+      if (res.ok) {
+        dispatch({ type: 'UPDATE_ORDER_STATUS', id, status });
+        showToast(`Order ${id} → ${status}`);
+      } else {
+        showToast('Error updating status');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error updating status');
+    }
   };
 
   return (
