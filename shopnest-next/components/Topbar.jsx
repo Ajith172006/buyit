@@ -14,46 +14,54 @@ export default function Topbar() {
     <>
       {/* --- DESKTOP TOPBAR --- */}
       <div id="topbar" className="desktop-only">
-        <div className="logo" onClick={() => dispatch({ type: 'SET_CATEGORY', category: 'all' })}>
-          🛍 BuyIt <span>Pro ✦</span>
-        </div>
-        <div className="search-bar">
-          <input
-            type="text"
-            id="search-input"
-            placeholder="Search for products, brands and more..."
-            value={state.activeSearch}
-            onChange={e => dispatch({ type: 'SET_SEARCH', search: e.target.value })}
-          />
-          <button onClick={() => { }}>🔍</button>
-        </div>
-        
-        <div className="nav-actions">
-          {state.authLoading ? (
-            <button className="nav-btn" disabled>
-              ⏳ Loading...
-            </button>
-          ) : state.userAuthenticated ? (
-            <button className="nav-btn" onClick={() => {
-              dispatch({ type: 'OPEN_USER_PROFILE' });
+        <div className="topbar-inner-container">
+          <div className="logo" onClick={() => dispatch({ type: 'SET_CATEGORY', category: 'all' })}>
+            <span className="logo-brand">BuyIt</span>
+            <span className="logo-sub">Explore <span className="plus-color">Plus ✦</span></span>
+          </div>
+          <div className="search-bar">
+            <input
+              type="text"
+              id="search-input"
+              placeholder="Search for products, brands and more..."
+              value={state.activeSearch}
+              onChange={e => dispatch({ type: 'SET_SEARCH', search: e.target.value })}
+            />
+            <button onClick={() => { }}>🔍</button>
+          </div>
+          
+          <div className="nav-actions">
+            {state.authLoading ? (
+              <button className="nav-btn" disabled>
+                ⏳ Loading...
+              </button>
+            ) : state.userAuthenticated ? (
+              <button className="nav-btn" onClick={() => {
+                dispatch({ type: 'OPEN_USER_PROFILE' });
+                setMenuOpen(false);
+              }}>
+                👤 {state.userProfile?.name?.split(' ')[0] || 'User'} ▾
+              </button>
+            ) : (
+              <button className="nav-btn-login" onClick={() => {
+                dispatch({ type: 'OPEN_USER_LOGIN' });
+                setMenuOpen(false);
+              }}>
+                Login
+              </button>
+            )}
+            
+            <a href="#" className="become-seller-link" onClick={(e) => { e.preventDefault(); dispatch({ type: 'SHOW_TOAST', message: 'Seller registration is coming soon!' }); }}>
+              Become a Seller
+            </a>
+
+            <button className="nav-btn-cart" onClick={() => {
+              dispatch({ type: 'TOGGLE_CART' });
               setMenuOpen(false);
             }}>
-              👤 {state.userProfile?.name?.split(' ')[0] || 'User'}
+              🛒 Cart <span id="cart-count">{cartCount}</span>
             </button>
-          ) : (
-            <button className="nav-btn" onClick={() => {
-              dispatch({ type: 'OPEN_USER_LOGIN' });
-              setMenuOpen(false);
-            }}>
-              👤 Login
-            </button>
-          )}
-          <button className="nav-btn" onClick={() => {
-            dispatch({ type: 'TOGGLE_CART' });
-            setMenuOpen(false);
-          }}>
-            🛒 Cart <span id="cart-count">{cartCount}</span>
-          </button>
+          </div>
         </div>
       </div>
 

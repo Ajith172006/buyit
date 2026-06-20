@@ -60,7 +60,7 @@ const OrderSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ['credit-card', 'debit-card', 'upi', 'net-banking', 'wallet'],
+      enum: ['credit-card', 'debit-card', 'upi', 'net-banking', 'wallet', 'cod', 'pay-later'],
       required: true,
     },
     paymentStatus: {

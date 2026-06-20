@@ -7,7 +7,6 @@ import { useGSAP } from '@gsap/react';
 import Topbar from '@/components/Topbar';
 import CategoryNav from '@/components/CategoryNav';
 import HeroBanner from '@/components/HeroBanner';
-import OfferStrip from '@/components/OfferStrip';
 import FilterSidebar from '@/components/FilterSidebar';
 import ProductGrid from '@/components/ProductGrid';
 import CartPanel from '@/components/CartPanel';
@@ -54,21 +53,6 @@ export default function HomePage() {
       }
     });
 
-    // Offer strip horizontal slide-in with subtle rotation
-    gsap.from('.offer-chip', {
-      x: 80,
-      opacity: 0,
-      rotation: -5,
-      stagger: 0.08,
-      duration: 1,
-      ease: 'back.out(1.5)',
-      scrollTrigger: {
-        trigger: '#offers',
-        start: 'top 95%',
-        toggleActions: 'play none none none'
-      }
-    });
-
     // Product grid staggered reveal with 3D-like scale and fade
     gsap.from('.product-card', {
       y: 60,
@@ -104,7 +88,6 @@ export default function HomePage() {
       <CategoryNav />
       <HeroBanner />
       <HorizontalProducts />
-      <OfferStrip />
       <div id="content">
         <FilterSidebar />
         <ProductGrid />

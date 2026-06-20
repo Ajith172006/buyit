@@ -10,11 +10,13 @@ export default function OfferStrip() {
 
   return (
     <div id="offers">
-      {offers.map((o, i) => (
-        <div className="offer-chip" key={i}>
-          <span>{o.label}</span> {o.desc}
-        </div>
-      ))}
+      <div className="offers-inner-container">
+        {offers.map((o, i) => (
+          <div className="offer-chip" key={i}>
+            <span>{o.label}</span> {o.desc}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

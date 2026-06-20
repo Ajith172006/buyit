@@ -21,6 +21,7 @@ const { connectDB } = require('./config/mongodb');
 const productsRoute = require('./routes/products');
 const ordersRoute = require('./routes/orders');
 const usersRoute = require('./routes/users');
+const paymentsRoute = require('./routes/payments');
 
 // Initialize express app
 const app = express();
@@ -54,6 +55,7 @@ connectDB();
 app.use('/api/products', productsRoute);
 app.use('/api/orders', ordersRoute);
 app.use('/api/users', usersRoute);
+app.use('/api/payments', paymentsRoute);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

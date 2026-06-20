@@ -2,7 +2,7 @@
 import { useStore } from '@/context/StoreContext';
 import { formatNumber } from '@/lib/utils';
 
-export default function ProductCard({ product: p }) {
+export default function ProductCard({ product: p, hideAddToCart = false }) {
   const { state, dispatch, showToast } = useStore();
 
   const handleAddToCart = (e) => {
@@ -71,7 +71,7 @@ export default function ProductCard({ product: p }) {
 
       <div className="p-rating">
         <span className="stars">{p.rating} ★</span>
-        <span className="count">({formatNumber(p.reviews)})</span>
+        <span className="count">({formatNumber(Array.isArray(p.reviews) ? p.reviews.length : (p.reviews || 0))})</span>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap' }}>
@@ -80,7 +80,9 @@ export default function ProductCard({ product: p }) {
         <span className="p-disc">{p.discount}% off</span>
       </div>
 
-      <button className="add-btn" onClick={handleAddToCart}>Add to Cart</button>
+      {!hideAddToCart && (
+        <button className="add-btn" onClick={handleAddToCart}>Add to Cart</button>
+      )}
     </div>
   );
 }

@@ -24,6 +24,7 @@ const initialState = {
   // Panels
   cartOpen: false,
   checkoutOpen: false,
+  filtersOpen: false,
   detailProductId: null,
   adminOpen: false,
   adminAuthenticated: false,
@@ -75,6 +76,8 @@ function reducer(state, action) {
         : [...state.selectedBrands, action.brand];
       return { ...state, selectedBrands: updatedBrands };
     }
+    case 'TOGGLE_FILTERS':
+      return { ...state, filtersOpen: !state.filtersOpen };
     case 'CLEAR_FILTERS':
       return {
         ...state,
@@ -99,6 +102,10 @@ function reducer(state, action) {
       return { ...state, minDiscount: action.discount };
     case 'SET_SORT':
       return { ...state, sortMode: action.mode };
+    case 'TOGGLE_FILTERS':
+      return { ...state, filtersOpen: !state.filtersOpen };
+    case 'CLOSE_FILTERS':
+      return { ...state, filtersOpen: false };
     case 'TOGGLE_CART':
       return { ...state, cartOpen: !state.cartOpen };
     case 'CLOSE_CART':
@@ -146,6 +153,9 @@ function reducer(state, action) {
     case 'USER_LOGIN_SUCCESS':
       return { ...state, userAuthenticated: true, userLoginOpen: false };
     case 'USER_LOGOUT':
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('buyit_user_session');
+      }
       return { ...state, userAuthenticated: false, userProfile: null, wishlist: [] };
     case 'UPDATE_USER_PROFILE':
       return { ...state, userProfile: action.profile, wishlist: action.profile?.wishlist || state.wishlist };
@@ -174,6 +184,20 @@ export function StoreProvider({ children }) {
 
   // Supabase auth state listener — hydrates session on load & clears on sign-out
   useEffect(() => {
+    // Check if we have a locally stored demo/guest session first
+    const localProfileStr = typeof window !== 'undefined' ? localStorage.getItem('buyit_user_session') : null;
+    let localProfile = null;
+    if (localProfileStr) {
+      try {
+        localProfile = JSON.parse(localProfileStr);
+        if (localProfile && localProfile.email) {
+          dispatch({ type: 'HYDRATE_USER', profile: localProfile });
+        }
+      } catch (e) {
+        console.error('Error parsing local user profile:', e);
+      }
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       dispatch({ type: 'SET_AUTH_LOADING', loading: true });
       if (session?.user && session.user.email) {
@@ -181,7 +205,6 @@ export function StoreProvider({ children }) {
           const res = await fetch(`/api/user?email=${encodeURIComponent(session.user.email)}`);
           
           if (!res.ok) {
-            // API error (e.g. 404 user not found, or 500 db error), user needs to setup profile
             dispatch({ type: 'OPEN_USER_LOGIN' });
             dispatch({ type: 'SET_AUTH_LOADING', loading: false });
             return;
@@ -191,6 +214,9 @@ export function StoreProvider({ children }) {
           if (data.success && data.data) {
             const p = data.data;
             if (p.phone && p.address) {
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('buyit_user_session', JSON.stringify(p));
+              }
               dispatch({ type: 'HYDRATE_USER', profile: p });
             } else {
               dispatch({ type: 'OPEN_USER_LOGIN' });
@@ -200,12 +226,16 @@ export function StoreProvider({ children }) {
           }
         } catch (e) {
           console.error('Error fetching user profile:', e);
-          // Even if network fails or API crashes, force the profile setup modal to open
-          // so the user isn't stuck having to click "Login" again.
           dispatch({ type: 'OPEN_USER_LOGIN' });
         }
       } else {
-        dispatch({ type: 'USER_LOGOUT' });
+        // If there's no Supabase session, check if we had a local profile. If not, log out.
+        if (!localProfile) {
+          dispatch({ type: 'USER_LOGOUT' });
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('buyit_user_session');
+          }
+        }
       }
       dispatch({ type: 'SET_AUTH_LOADING', loading: false });
     });
@@ -221,13 +251,28 @@ export function StoreProvider({ children }) {
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.data) {
-            dispatch({ type: 'SET_PRODUCTS', products: json.data });
+            const mappedProducts = json.data.map(p => ({
+              ...p,
+              id: p._id,
+              name: p.name,
+              brand: p.brand || 'Generic',
+              category: p.category,
+              price: p.price,
+              mrp: p.originalPrice || p.price,
+              rating: p.rating,
+              reviews: Array.isArray(p.reviews) ? p.reviews : [],
+              stock: p.stock,
+              discount: p.discount,
+              desc: p.description,
+              image: p.image
+            }));
+            dispatch({ type: 'SET_PRODUCTS', products: mappedProducts });
           }
         } else {
-          console.error('Failed to fetch products from backend');
+          console.warn('Failed to fetch products from backend, falling back to static data.');
         }
       } catch (err) {
-        console.error('Error fetching products:', err);
+        console.warn('Backend server is offline. Using static/local products instead.', err.message);
       }
     }
     fetchProducts();
@@ -258,7 +303,7 @@ export function StoreProvider({ children }) {
           }
         }
       } catch (err) {
-        console.error('Error fetching admin orders:', err);
+        console.warn('Error fetching admin orders (backend might be offline):', err.message);
       }
     }
     fetchAdminOrders();

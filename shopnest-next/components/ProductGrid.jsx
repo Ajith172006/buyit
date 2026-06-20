@@ -21,6 +21,12 @@ export default function ProductGrid() {
       </div>
 
       <div className="sort-bar">
+        <button
+          className={`filter-toggle-btn${state.filtersOpen ? ' active' : ''}`}
+          onClick={() => dispatch({ type: 'TOGGLE_FILTERS' })}
+        >
+          {state.filtersOpen ? '✕ Hide Filters' : '⚙ Filters'}
+        </button>
         <label>Sort by:</label>
         <select
           value={state.sortMode}
@@ -43,7 +49,7 @@ export default function ProductGrid() {
             😕 No products found. Try different filters.
           </div>
         ) : (
-          filtered.map(p => <ProductCard key={p.id} product={p} />)
+          filtered.map(p => <ProductCard key={p.id} product={p} hideAddToCart={true} />)
         )}
       </div>
     </div>

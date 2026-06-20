@@ -4,7 +4,11 @@ import { formatNumber } from '@/lib/utils';
 
 export default function AdminDashboard({ onViewOrders }) {
   const { state, allOrders } = useStore();
-  const topProducts = [...state.products].sort((a, b) => b.reviews - a.reviews).slice(0, 5);
+  const topProducts = [...state.products].sort((a, b) => {
+    const bCount = Array.isArray(b.reviews) ? b.reviews.length : (b.reviews || 0);
+    const aCount = Array.isArray(a.reviews) ? a.reviews.length : (a.reviews || 0);
+    return bCount - aCount;
+  }).slice(0, 5);
   const recentOrders = allOrders ? allOrders.slice(0, 8) : [];
   
   // Dynamic Calculations
@@ -81,7 +85,7 @@ export default function AdminDashboard({ onViewOrders }) {
                 <td>{p.category}</td>
                 <td>₹{formatNumber(p.price)}</td>
                 <td>{p.rating} ★</td>
-                <td>{formatNumber(p.reviews)}</td>
+                <td>{formatNumber(Array.isArray(p.reviews) ? p.reviews.length : (p.reviews || 0))}</td>
                 <td>{p.stock}</td>
               </tr>
             ))}

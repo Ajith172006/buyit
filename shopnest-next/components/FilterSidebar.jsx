@@ -6,8 +6,10 @@ export default function FilterSidebar() {
 
   const brands = [...new Set(state.products.map(p => p.brand).filter(Boolean))];
 
+  if (!state.filtersOpen) return null;
+
   return (
-    <div id="filters">
+    <div id="filters" className="open">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3>Filters</h3>
         <button 

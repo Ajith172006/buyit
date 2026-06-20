@@ -97,6 +97,48 @@ export const initialProducts = [
     desc:'42hr total playback, ENx tech, Instacharge',
     image:'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400&q=80',
   },
+  {
+    id:17, name:'Apple iPhone 15 Pro Max 256GB', brand:'Apple', category:'Mobiles',
+    price:134900, mrp:159900, rating:4.8, reviews:18420, stock:45, discount:16,
+    desc:'A17 Pro chip, 48MP camera system, titanium design',
+    image:'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400&q=80',
+  },
+  {
+    id:18, name:'Samsung Galaxy S24 Ultra 5G', brand:'Samsung', category:'Mobiles',
+    price:124999, mrp:139999, rating:4.7, reviews:12560, stock:35, discount:10,
+    desc:'Snapdragon 8 Gen 3, 200MP camera, built-in S Pen, AI features',
+    image:'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=400&q=80',
+  },
+  {
+    id:19, name:'Mens Classic Leather Jacket', brand:'Levis', category:"Men's Fashion",
+    price:4999, mrp:6999, rating:4.5, reviews:1823, stock:60, discount:28,
+    desc:'Premium real leather jacket with clean biker design and zipper pockets',
+    image:'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&q=80',
+  },
+  {
+    id:20, name:'Mens Slim Fit Casual Chinos', brand:'Zara', category:"Men's Fashion",
+    price:1499, mrp:2499, rating:4.3, reviews:3412, stock:120, discount:40,
+    desc:'Stretchable cotton slim-fit chinos for smart casual office wear',
+    image:'https://images.unsplash.com/photo-1479064555552-3ef4979f8908?w=400&q=80',
+  },
+  {
+    id:21, name:'Womens Floral Summer A-Line Dress', brand:'H&M', category:"Women's Fashion",
+    price:2499, mrp:3999, rating:4.4, reviews:2134, stock:80, discount:37,
+    desc:'Breathable chiffon fabric summer dress with beautiful floral printing',
+    image:'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=400&q=80',
+  },
+  {
+    id:22, name:'Womens Luxury Leather Handbag', brand:'Michael Kors', category:"Women's Fashion",
+    price:3499, mrp:4999, rating:4.6, reviews:923, stock:40, discount:30,
+    desc:'Saffiano leather handbag with gold-tone hardware and chain straps',
+    image:'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400&q=80',
+  },
+  {
+    id:23, name:'Organic California Almonds 500g', brand:'Happilo', category:'Grocery',
+    price:499, mrp:599, rating:4.6, reviews:12934, stock:500, discount:16,
+    desc:'Raw whole raw almonds rich in protein, fiber, and healthy fats',
+    image:'https://images.unsplash.com/photo-1508061253366-f7da158b6d96?w=400&q=80',
+  },
 ];
 
 export const customers = [
@@ -124,4 +166,4 @@ export const analyticsData = {
   revenue: [8.2,9.4,7.8,10.1,11.3,12.4],
 };
 
-export const categories = ['Electronics','Fashion','Mobiles','Appliances','Furniture','Grocery','Beauty','Toys','Sports'];
+export const categories = ['Electronics','Mobiles',"Men's Fashion","Women's Fashion",'Home','Grocery','Beauty','Toys','Sports'];
