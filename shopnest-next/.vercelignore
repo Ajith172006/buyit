@@ -1,2 +1,7 @@
-# Ignore standalone Express backend folder from Vercel Serverless Function scanner
-api/
+# Ignore standalone Express backend server files, but preserve api/models for Next.js API routes
+api/server.js
+api/seed.js
+api/routes/
+api/middleware/
+api/config/
+
