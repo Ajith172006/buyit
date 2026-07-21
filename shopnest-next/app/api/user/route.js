@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/api/models/User';
 
+const UserModel = User.default || User;
+
 export async function POST(req) {
   try {
     await dbConnect();
@@ -14,7 +16,7 @@ export async function POST(req) {
     }
 
     // Try to find the user by email
-    let user = await User.findOne({ email });
+    let user = await UserModel.findOne({ email });
 
     if (user) {
       // Update existing user with new details
@@ -41,11 +43,11 @@ export async function POST(req) {
       await user.save();
     } else {
       // Create new user
-      user = new User({
+      user = new UserModel({
         name: name || 'Google User',
         email,
         phone,
-        age,
+        age: age ? Number(age) : undefined,
         savedAddresses: address && address.street ? [{ label: 'Home', ...address, isDefault: true }] : [],
         isVerified: true, // Google auth implies verified email
       });
@@ -87,7 +89,7 @@ export async function GET(req) {
       return NextResponse.json({ success: false, message: 'Email query parameter is required' }, { status: 400 });
     }
 
-    const user = await User.findOne({ email });
+    const user = await UserModel.findOne({ email });
 
     if (!user) {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
