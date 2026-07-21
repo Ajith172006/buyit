@@ -1,0 +1,3 @@
+# Ignore standalone Express backend folder from Vercel Serverless Function scanner
+api/
+shopnest-next/api/
