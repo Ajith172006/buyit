@@ -13,7 +13,10 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
       /\.vercel\.app$/,          // Any Vercel preview/production URL
       /\.onrender\.com$/,        // Render URLs
     ]
-  : ['http://localhost:3000', 'http://127.0.0.1:3000'];
+  : [
+      /^http:\/\/localhost:\d+$/,
+      /^http:\/\/127\.0\.0\.1:\d+$/,
+    ];
 
 const { connectDB } = require('./config/mongodb');
 
@@ -39,8 +42,8 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Request logging middleware
 app.use((req, res, next) => {

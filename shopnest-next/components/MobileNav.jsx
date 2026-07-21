@@ -1,15 +1,12 @@
 'use client';
 import { useStore } from '@/context/StoreContext';
-import { supabase } from '@/lib/supabaseClient';
 
 export default function MobileNav() {
   const { state, dispatch, cartCount } = useStore();
 
   const handleAccountClick = () => {
     if (state.userAuthenticated) {
-      // If already authenticated, maybe toggle a user menu or log out.
-      // For now, let's just log out or show a toast
-      dispatch({ type: 'SHOW_TOAST', message: 'Hello ' + (state.userProfile?.name || 'User') });
+      dispatch({ type: 'OPEN_USER_PROFILE' });
     } else {
       dispatch({ type: 'OPEN_USER_LOGIN' });
     }
@@ -21,13 +18,9 @@ export default function MobileNav() {
         <div className="mob-icon">🏠</div>
         <span>Home</span>
       </button>
-      <button className="mob-nav-item">
+      <button className="mob-nav-item" onClick={() => dispatch({ type: 'OPEN_VIDEO_MODAL' })}>
         <div className="mob-icon">▶️</div>
         <span>Play</span>
-      </button>
-      <button className="mob-nav-item">
-        <div className="mob-icon">🏷️</div>
-        <span>Top Deals</span>
       </button>
       <button className="mob-nav-item" onClick={handleAccountClick}>
         <div className="mob-icon">👤</div>

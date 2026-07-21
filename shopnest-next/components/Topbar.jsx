@@ -1,11 +1,13 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useStore } from '@/context/StoreContext';
-import { supabase } from '@/lib/supabaseClient';
 
 export default function Topbar() {
   const { state, dispatch, cartCount } = useStore();
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
   const locationText = state.userProfile?.address
     ? `HOME ${state.userProfile.address}`
     : 'Select delivery location';
@@ -18,6 +20,40 @@ export default function Topbar() {
     }
     setMenuOpen(false);
   };
+
+  const openSearch = () => {
+    const query = state.activeSearch.trim();
+    if (query) router.push(`/search?q=${encodeURIComponent(query)}`);
+  };
+
+  const suggestions = state.activeSearch.trim().length > 0
+    ? state.products.filter((product) =>
+        [product.name, product.brand, product.category]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(state.activeSearch.trim().toLowerCase()))
+      ).slice(0, 6)
+    : [];
+
+  const selectSuggestion = (product) => {
+    dispatch({ type: 'SET_SEARCH', search: product.name });
+    dispatch({ type: 'SHOW_DETAIL', id: product.id });
+    setSearchFocused(false);
+  };
+
+  const renderSuggestions = () => searchFocused && suggestions.length > 0 && (
+    <div className="search-suggestions" role="listbox" aria-label="Product suggestions">
+      {suggestions.map((product) => (
+        <button className="search-suggestion" type="button" key={product.id} role="option" onMouseDown={(event) => event.preventDefault()} onClick={() => selectSuggestion(product)}>
+          <img src={product.image} alt="" />
+          <span><strong>{product.name}</strong><small>{product.brand} · {product.category}</small></span>
+          <b>₹{product.price?.toLocaleString('en-IN')}</b>
+        </button>
+      ))}
+      <button className="search-all-results" type="button" onMouseDown={(event) => event.preventDefault()} onClick={openSearch}>
+        View all results for “{state.activeSearch.trim()}”
+      </button>
+    </div>
+  );
 
   return (
     <>
@@ -35,8 +71,12 @@ export default function Topbar() {
               placeholder="Search for products, brands and more..."
               value={state.activeSearch}
               onChange={e => dispatch({ type: 'SET_SEARCH', search: e.target.value })}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              onKeyDown={e => { if (e.key === 'Enter') openSearch(); }}
             />
-            <button onClick={() => { }}>🔍</button>
+            <button onClick={openSearch} aria-label="Search products">🔍</button>
+            {renderSuggestions()}
           </div>
           
           <div className="nav-actions">
@@ -60,6 +100,17 @@ export default function Topbar() {
               </button>
             )}
 
+
+            <button
+              className="nav-btn nav-btn-play"
+              onClick={() => {
+                dispatch({ type: 'OPEN_VIDEO_MODAL' });
+                setMenuOpen(false);
+              }}
+              aria-label="Open BuyIt Play"
+            >
+              ▶ Play
+            </button>
 
             <button className="nav-btn-cart" onClick={() => {
               dispatch({ type: 'TOGGLE_CART' });
@@ -103,9 +154,13 @@ export default function Topbar() {
               placeholder="Search products..." 
               value={state.activeSearch}
               onChange={e => dispatch({ type: 'SET_SEARCH', search: e.target.value })}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              onKeyDown={e => { if (e.key === 'Enter') openSearch(); }}
             />
             <span className="ms-camera">📷</span>
             <span className="ms-scan">🔳</span>
+            {renderSuggestions()}
           </div>
         </div>
       </div>

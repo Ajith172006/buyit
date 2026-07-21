@@ -1,14 +1,14 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useStore } from '@/context/StoreContext';
-import { supabase } from '@/lib/supabaseClient';
+import { firebaseAuth } from '@/lib/firebaseClient';
+import { signOut } from 'firebase/auth';
 import { formatNumber } from '@/lib/utils';
 import ProductCard from './ProductCard';
 
 export default function UserProfileModal() {
   const { state, dispatch, showToast } = useStore();
   const [activeTab, setActiveTab] = useState('orders');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
 
@@ -23,6 +23,11 @@ export default function UserProfileModal() {
   }, [state.userProfileOpen, activeTab]);
 
   const fetchOrders = async () => {
+    if (state.userProfile?.id?.startsWith('demo-')) {
+      setOrders([]);
+      return;
+    }
+
     setLoadingOrders(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -38,7 +43,7 @@ export default function UserProfileModal() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    if (firebaseAuth) await signOut(firebaseAuth);
     localStorage.removeItem('buyit_user_session');
     dispatch({ type: 'USER_LOGOUT' });
     dispatch({ type: 'CLOSE_USER_PROFILE' });
@@ -79,10 +84,9 @@ export default function UserProfileModal() {
   if (!state.userProfileOpen) return null;
 
   return (
-    <div id="admin-panel" style={{ zIndex: 3000 }}>
+    <div id="user-profile-panel" className="admin-panel-overlay" style={{ zIndex: 3000 }}>
       <div className="admin-header">
         <div className="admin-header-title">
-          <button className="admin-mobile-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
           <h1>👤 My Profile <span>{state.userProfile?.name}</span></h1>
         </div>
         <div className="admin-header-actions">
@@ -90,24 +94,29 @@ export default function UserProfileModal() {
           <button className="close-admin" onClick={() => dispatch({ type: 'CLOSE_USER_PROFILE' })}>✕ Close</button>
         </div>
       </div>
+      <nav className="profile-mobile-tabs" aria-label="Profile sections">
+        <button className={activeTab === 'orders' ? 'active' : ''} onClick={() => setActiveTab('orders')}>Orders</button>
+        <button className={activeTab === 'wishlist' ? 'active' : ''} onClick={() => setActiveTab('wishlist')}>Wishlist</button>
+        <button className={activeTab === 'address' ? 'active' : ''} onClick={() => setActiveTab('address')}>Addresses</button>
+      </nav>
       
       <div className="admin-body">
-        <div className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <div className="admin-sidebar">
           <div 
             className={`admin-menu-item ${activeTab === 'orders' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('orders'); setSidebarOpen(false); }}
+            onClick={() => setActiveTab('orders')}
           >
             <span className="icon">🛍</span> My Orders
           </div>
           <div 
             className={`admin-menu-item ${activeTab === 'wishlist' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('wishlist'); setSidebarOpen(false); }}
+            onClick={() => setActiveTab('wishlist')}
           >
             <span className="icon">❤️</span> My Wishlist
           </div>
           <div 
             className={`admin-menu-item ${activeTab === 'address' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('address'); setSidebarOpen(false); }}
+            onClick={() => setActiveTab('address')}
           >
             <span className="icon">🏠</span> Address Book
           </div>

@@ -1,9 +1,11 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Order = require('../models/Order');
+const { requireAdminKey } = require('../middleware/auth');
 
-// Get all orders (Admin only theoretically, but we'll leave it open for now)
-router.get('/', async (req, res) => {
+// Get all orders (Admin only)
+router.get('/', requireAdminKey, async (req, res) => {
   try {
     const orders = await Order.find()
       .populate('items.productId', 'name price image')
@@ -46,6 +48,10 @@ router.post('/', async (req, res) => {
 // Get user orders
 router.get('/user/:userId', async (req, res) => {
   try {
+    if (!mongoose.isValidObjectId(req.params.userId)) {
+      return res.status(200).json({ success: true, count: 0, data: [] });
+    }
+
     const orders = await Order.find({ userId: req.params.userId })
       .populate('items.productId', 'name price image')
       .sort({ createdAt: -1 });
@@ -89,8 +95,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Update order status
-router.put('/:id', async (req, res) => {
+// Update order status (admin/seller only)
+router.put('/:id', requireAdminKey, async (req, res) => {
   try {
     const order = await Order.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -116,8 +122,8 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Cancel order
-router.delete('/:id', async (req, res) => {
+// Cancel order (admin/seller only)
+router.delete('/:id', requireAdminKey, async (req, res) => {
   try {
     const order = await Order.findByIdAndUpdate(
       req.params.id,

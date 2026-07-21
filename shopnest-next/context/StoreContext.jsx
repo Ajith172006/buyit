@@ -1,8 +1,9 @@
 'use client';
 
 import { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
-import { initialProducts, sampleOrders } from '@/lib/data';
-import { supabase } from '@/lib/supabaseClient';
+import { initialProducts } from '@/lib/data';
+import { onAuthStateChanged } from 'firebase/auth';
+import { firebaseAuth } from '@/lib/firebaseClient';
 
 const StoreContext = createContext(null);
 
@@ -35,6 +36,7 @@ const initialState = {
   userProfileOpen: false,
   userProfile: null,
   authLoading: true,
+  videoModalOpen: false,
 };
 
 function reducer(state, action) {
@@ -102,8 +104,6 @@ function reducer(state, action) {
       return { ...state, minDiscount: action.discount };
     case 'SET_SORT':
       return { ...state, sortMode: action.mode };
-    case 'TOGGLE_FILTERS':
-      return { ...state, filtersOpen: !state.filtersOpen };
     case 'CLOSE_FILTERS':
       return { ...state, filtersOpen: false };
     case 'TOGGLE_CART':
@@ -145,6 +145,7 @@ function reducer(state, action) {
       return {
         ...state,
         orders: state.orders.map(o => o.id === action.id ? { ...o, status: action.status } : o),
+        adminOrders: state.adminOrders.map(o => o.id === action.id ? { ...o, status: action.status } : o),
       };
     case 'OPEN_USER_LOGIN':
       return { ...state, userLoginOpen: true };
@@ -174,6 +175,12 @@ function reducer(state, action) {
       return { ...state, userProfileOpen: true };
     case 'CLOSE_USER_PROFILE':
       return { ...state, userProfileOpen: false };
+    case 'OPEN_VIDEO_MODAL':
+      return { ...state, videoModalOpen: true };
+    case 'CLOSE_VIDEO_MODAL':
+      return { ...state, videoModalOpen: false };
+    case 'TOGGLE_VIDEO_MODAL':
+      return { ...state, videoModalOpen: !state.videoModalOpen };
     default:
       return state;
   }
@@ -182,7 +189,7 @@ function reducer(state, action) {
 export function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  // Supabase auth state listener — hydrates session on load & clears on sign-out
+  // Firebase auth state listener hydrates the session on load and clears on sign-out.
   useEffect(() => {
     // Check if we have a locally stored demo/guest session first
     const localProfileStr = typeof window !== 'undefined' ? localStorage.getItem('buyit_user_session') : null;
@@ -198,11 +205,17 @@ export function StoreProvider({ children }) {
       }
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    if (!firebaseAuth) {
+      if (!localProfile) dispatch({ type: 'USER_LOGOUT' });
+      dispatch({ type: 'SET_AUTH_LOADING', loading: false });
+      return undefined;
+    }
+
+    const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
       dispatch({ type: 'SET_AUTH_LOADING', loading: true });
-      if (session?.user && session.user.email) {
+      if (user?.email) {
         try {
-          const res = await fetch(`/api/user?email=${encodeURIComponent(session.user.email)}`);
+          const res = await fetch(`/api/user?email=${encodeURIComponent(user.email)}`);
           
           if (!res.ok) {
             dispatch({ type: 'OPEN_USER_LOGIN' });
@@ -229,7 +242,7 @@ export function StoreProvider({ children }) {
           dispatch({ type: 'OPEN_USER_LOGIN' });
         }
       } else {
-        // If there's no Supabase session, check if we had a local profile. If not, log out.
+        // Keep the intentionally local demo profile; otherwise clear the account state.
         if (!localProfile) {
           dispatch({ type: 'USER_LOGOUT' });
           if (typeof window !== 'undefined') {
@@ -239,7 +252,7 @@ export function StoreProvider({ children }) {
       }
       dispatch({ type: 'SET_AUTH_LOADING', loading: false });
     });
-    return () => subscription.unsubscribe();
+    return unsubscribe;
   }, []);
 
   // Fetch products from MongoDB
@@ -264,7 +277,8 @@ export function StoreProvider({ children }) {
               stock: p.stock,
               discount: p.discount,
               desc: p.description,
-              image: p.image
+              image: p.image,
+              images: Array.isArray(p.images) && p.images.length > 0 ? p.images : [p.image]
             }));
             dispatch({ type: 'SET_PRODUCTS', products: mappedProducts });
           }
@@ -284,7 +298,10 @@ export function StoreProvider({ children }) {
       if (!state.adminAuthenticated) return;
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        const res = await fetch(`${apiUrl}/api/orders`);
+        const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
+        const res = await fetch(`${apiUrl}/api/orders`, {
+          headers: { 'Authorization': `Bearer ${adminKey}` },
+        });
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.data) {

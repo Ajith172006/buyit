@@ -10,6 +10,7 @@ const catImages = {
   'Mobiles': 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=120&auto=format&fit=crop&q=80',
   'Appliances': 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=120&auto=format&fit=crop&q=80',
   'Furniture': 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=120&auto=format&fit=crop&q=80',
+  'Home': 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=120&auto=format&fit=crop&q=80',
   'Grocery': 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=120&auto=format&fit=crop&q=80',
   'Beauty': 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=120&auto=format&fit=crop&q=80',
   'Toys': 'https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=120&auto=format&fit=crop&q=80',

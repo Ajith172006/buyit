@@ -49,7 +49,7 @@ export default function ProductGrid() {
             😕 No products found. Try different filters.
           </div>
         ) : (
-          filtered.map(p => <ProductCard key={p.id} product={p} hideAddToCart={true} />)
+          filtered.map(p => <ProductCard key={p.id} product={p} />)
         )}
       </div>
     </div>

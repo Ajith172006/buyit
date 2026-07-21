@@ -1,5 +1,6 @@
 'use client';
 import { useStore } from '@/context/StoreContext';
+import { formatNumber } from '@/lib/utils';
 
 export default function HeroBanner() {
   const { state, dispatch } = useStore();
@@ -27,7 +28,7 @@ export default function HeroBanner() {
               <div className="d-img">
                 <img src={p.image} alt={p.name} style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
               </div>
-              <div className="d-price">₹{p.price.toLocaleString()}</div>
+              <div className="d-price">₹{formatNumber(p.price)}</div>
               <div className="d-name">{p.brand}</div>
             </div>
           ))}

@@ -80,5 +80,35 @@ function showDetail(id){
         <span>🛡 1 Year Warranty</span>
       </div>
     </div>`;
+  
+  // Render relevant products (same category, excluding current product, max 4)
+  const relevantProducts = products.filter(x => x.category === p.category && x.id !== p.id).slice(0, 4);
+  const relevantSection = document.getElementById('relevant-section');
+  const relevantList = document.getElementById('relevant-products-list');
+  
+  if (relevantProducts.length > 0) {
+    relevantSection.classList.remove('hidden');
+    relevantList.innerHTML = relevantProducts.map(rp => `
+      <div class="product-card" onclick="showDetail(${rp.id})">
+        ${rp.discount >= 30 ? `<div class="badge">${rp.discount}% OFF</div>` : ''}
+        <div class="p-img">${rp.emoji}</div>
+        <div class="p-brand">${rp.brand}</div>
+        <div class="p-name">${rp.name}</div>
+        <div class="p-rating">
+          <span class="stars">${rp.rating} ★</span>
+          <span class="count">(${rp.reviews.toLocaleString()})</span>
+        </div>
+        <div style="display:flex;align-items:baseline;flex-wrap:wrap">
+          <span class="p-price">₹${rp.price.toLocaleString()}</span>
+          <span class="p-mrp">₹${rp.mrp.toLocaleString()}</span>
+          <span class="p-disc">${rp.discount}% off</span>
+        </div>
+        <button class="add-btn" onclick="event.stopPropagation();addToCart(${rp.id})">Add to Cart</button>
+      </div>`).join('');
+  } else {
+    relevantSection.classList.add('hidden');
+  }
+  
   view.classList.remove('hidden');
+  view.scrollTo(0, 0);
 }

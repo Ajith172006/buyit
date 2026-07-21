@@ -27,7 +27,11 @@ const ProductSchema = new mongoose.Schema(
     },
     image: {
       type: String,
-      required: [true, 'Please provide an image URL'],
+      required: [true, 'Please provide a product image'],
+    },
+    images: {
+      type: [String],
+      default: [],
     },
     category: {
       type: String,
@@ -91,4 +95,4 @@ const ProductSchema = new mongoose.Schema(
 ProductSchema.index({ category: 1, name: 1 });
 ProductSchema.index({ isFeatured: 1 });
 
-module.exports = mongoose.model('Product', ProductSchema);
+module.exports = mongoose.models.Product || mongoose.model('Product', ProductSchema);

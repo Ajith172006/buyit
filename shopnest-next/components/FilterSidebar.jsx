@@ -1,10 +1,13 @@
 'use client';
+import { useState } from 'react';
 import { useStore } from '@/context/StoreContext';
 
 export default function FilterSidebar() {
   const { state, dispatch } = useStore();
+  const [showAllBrands, setShowAllBrands] = useState(false);
 
-  const brands = [...new Set(state.products.map(p => p.brand).filter(Boolean))];
+  const brands = [...new Set(state.products.map(p => p.brand).filter(Boolean))].sort();
+  const visibleBrands = showAllBrands ? brands : brands.slice(0, 8);
 
   if (!state.filtersOpen) return null;
 
@@ -23,7 +26,7 @@ export default function FilterSidebar() {
       {brands.length > 0 && (
         <div className="filter-section">
           <h4>Brand</h4>
-          {brands.slice(0, 8).map(brand => (
+          {visibleBrands.map(brand => (
             <label key={brand} className="filter-check">
               <input 
                 type="checkbox" 
@@ -33,6 +36,14 @@ export default function FilterSidebar() {
               {brand}
             </label>
           ))}
+          {brands.length > 8 && (
+            <button
+              onClick={() => setShowAllBrands(v => !v)}
+              style={{ background: 'none', border: 'none', color: '#007AFF', cursor: 'pointer', fontSize: '12px', marginTop: '6px', padding: 0 }}
+            >
+              {showAllBrands ? '▲ Show Less' : `▼ +${brands.length - 8} more`}
+            </button>
+          )}
         </div>
       )}
 

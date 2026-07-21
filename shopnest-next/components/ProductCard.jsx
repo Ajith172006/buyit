@@ -2,19 +2,8 @@
 import { useStore } from '@/context/StoreContext';
 import { formatNumber } from '@/lib/utils';
 
-export default function ProductCard({ product: p, hideAddToCart = false }) {
+export default function ProductCard({ product: p }) {
   const { state, dispatch, showToast } = useStore();
-
-  const handleAddToCart = (e) => {
-    e.stopPropagation();
-    if (!state.userAuthenticated) {
-      showToast('Please login to add items to cart.');
-      dispatch({ type: 'OPEN_USER_LOGIN' });
-      return;
-    }
-    dispatch({ type: 'ADD_TO_CART', id: p.id });
-    showToast('Added to cart! 🛒');
-  };
 
   const isWishlisted = state.wishlist?.includes(p.id);
 
@@ -59,10 +48,10 @@ export default function ProductCard({ product: p, hideAddToCart = false }) {
 
       <div className="p-img">
         <img
-          src={p.image}
+          src={p.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80'}
           alt={p.name}
           loading="lazy"
-          onError={(e) => { e.target.style.display = 'none'; }}
+          onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80'; }}
         />
       </div>
 
@@ -79,10 +68,6 @@ export default function ProductCard({ product: p, hideAddToCart = false }) {
         <span className="p-mrp">₹{formatNumber(p.mrp)}</span>
         <span className="p-disc">{p.discount}% off</span>
       </div>
-
-      {!hideAddToCart && (
-        <button className="add-btn" onClick={handleAddToCart}>Add to Cart</button>
-      )}
     </div>
   );
 }

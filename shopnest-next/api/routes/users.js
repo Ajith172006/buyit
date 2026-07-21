@@ -2,8 +2,38 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 
+// Simple in-memory rate limiter for auth endpoints
+// Allows max 10 attempts per IP per 15 minutes
+const authAttempts = new Map();
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const RATE_LIMIT_MAX = 10;
+
+function authRateLimit(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  const now = Date.now();
+  const record = authAttempts.get(ip);
+
+  if (record) {
+    // Reset window if expired
+    if (now - record.firstAttempt > RATE_LIMIT_WINDOW_MS) {
+      authAttempts.set(ip, { count: 1, firstAttempt: now });
+      return next();
+    }
+    if (record.count >= RATE_LIMIT_MAX) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many attempts. Please try again in 15 minutes.',
+      });
+    }
+    record.count++;
+  } else {
+    authAttempts.set(ip, { count: 1, firstAttempt: now });
+  }
+  next();
+}
+
 // Register user
-router.post('/register', async (req, res) => {
+router.post('/register', authRateLimit, async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
@@ -42,7 +72,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Login user
-router.post('/login', async (req, res) => {
+router.post('/login', authRateLimit, async (req, res) => {
   try {
     const { email, password } = req.body;
 

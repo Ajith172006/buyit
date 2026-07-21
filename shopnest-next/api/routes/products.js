@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
+const { requireAdminKey } = require('../middleware/auth');
 
 // Get all products
 router.get('/', async (req, res) => {
@@ -70,7 +71,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create product (admin only)
-router.post('/', async (req, res) => {
+router.post('/', requireAdminKey, async (req, res) => {
   try {
     const product = new Product(req.body);
     await product.save();
@@ -88,7 +89,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update product (admin only)
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAdminKey, async (req, res) => {
   try {
     const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -115,7 +116,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete product (admin only)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdminKey, async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
 

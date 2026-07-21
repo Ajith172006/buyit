@@ -18,7 +18,11 @@ export default function AdminDashboard({ onViewOrders }) {
   const numCustomers = allOrders ? new Set(allOrders.map(o => o.customer)).size : 0;
 
   const statusClass = (s) =>
-    s === 'delivered' ? 'delivered' : s === 'shipped' ? 'shipped' : s === 'pending' ? 'pending' : 'cancelled';
+    s === 'delivered' ? 'delivered'
+    : s === 'shipped' ? 'shipped'
+    : s === 'confirmed' ? 'shipped'
+    : s === 'pending' ? 'pending'
+    : 'cancelled';
 
   return (
     <div className="admin-section active" id="sec-dashboard">

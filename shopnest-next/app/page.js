@@ -20,6 +20,8 @@ import UserProfileModal from '@/components/UserProfileModal';
 import Toast from '@/components/Toast';
 import MobileNav from '@/components/MobileNav';
 import HorizontalProducts from '@/components/HorizontalProducts';
+import OfferStrip from '@/components/OfferStrip';
+import VideoModal from '@/components/VideoModal';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -29,13 +31,14 @@ export default function HomePage() {
   const container = useRef();
   const { state } = useStore();
 
-  // Recalculate ScrollTrigger markers and offsets when dynamic products or active category/filters update
+  // Refresh ScrollTrigger when products/filters change so positions stay accurate
   useEffect(() => {
-    ScrollTrigger.refresh();
+    const id = setTimeout(() => ScrollTrigger.refresh(), 100);
+    return () => clearTimeout(id);
   }, [state.products, state.activeCategory, state.activeSearch, state.selectedBrands]);
 
   useGSAP(() => {
-    // Parallax Hero background & fade out cards with scale effect
+    // ── Hero parallax ──────────────────────────────────────────────────────
     gsap.to('#hero', {
       backgroundPosition: '50% 100%',
       ease: 'none',
@@ -43,55 +46,57 @@ export default function HomePage() {
         trigger: '#hero',
         start: 'top top',
         end: 'bottom top',
-        scrub: true
-      }
+        scrub: 1,           // scrub:1 = 1s lag — silkier than scrub:true
+      },
     });
 
     gsap.to('.deal-card', {
-      y: 80,
+      y: 70,
       opacity: 0,
-      scale: 0.9,
+      scale: 0.92,
       ease: 'none',
       scrollTrigger: {
         trigger: '#hero',
         start: 'top top',
         end: 'bottom top',
-        scrub: true
-      }
+        scrub: 1.2,
+      },
     });
 
-    // Product grid reveal with 3D-like scale and fade
+    // ── Content section entrance ───────────────────────────────────────────
     gsap.from('#product-grid', {
-      y: 60,
+      y: 30,
       opacity: 0,
-      scale: 0.98,
-      duration: 0.8,
-      ease: 'power3.out',
+      duration: 0.6,
+      ease: 'power2.out',
       scrollTrigger: {
         trigger: '#product-grid',
-        start: 'top 85%',
-        toggleActions: 'play none none none'
-      }
+        start: 'top 98%',
+        toggleActions: 'play none none none',
+      },
     });
 
-    // Animate filters sidebar sliding in
-    gsap.from('#filters', {
-      x: -50,
-      opacity: 0,
-      duration: 0.8,
-      ease: 'power3.out',
-      scrollTrigger: {
-        trigger: '#content',
-        start: 'top 85%',
-        toggleActions: 'play none none none'
-      }
-    });
+    if (typeof document !== 'undefined' && document.querySelector('#filters')) {
+      gsap.from('#filters', {
+        x: -20,
+        opacity: 0,
+        duration: 0.6,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: '#content',
+          start: 'top 98%',
+          toggleActions: 'play none none none',
+        },
+      });
+    }
+
   }, { scope: container });
 
   return (
     <div ref={container}>
       <Topbar />
       <CategoryNav />
+      <OfferStrip />
       <HeroBanner />
       <HorizontalProducts />
       <div id="content">
@@ -105,6 +110,7 @@ export default function HomePage() {
       <AdminLoginModal />
       <UserAuthModal />
       <UserProfileModal />
+      <VideoModal />
       <Toast />
       <MobileNav />
     </div>

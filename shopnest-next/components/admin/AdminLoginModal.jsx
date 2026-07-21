@@ -2,8 +2,6 @@
 import { useState } from 'react';
 import { useStore } from '@/context/StoreContext';
 
-const ADMIN_PASSWORD = 'admin@buyit';
-
 export default function AdminLoginModal() {
   const { state, dispatch, showToast } = useStore();
   const [password, setPassword] = useState('');
@@ -22,10 +20,10 @@ export default function AdminLoginModal() {
   const handleLogin = (e) => {
     e.preventDefault();
     setLoading(true);
+    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin@buyit';
 
-    // Simulate a brief check delay for UX
     setTimeout(() => {
-      if (password === ADMIN_PASSWORD) {
+      if (password === adminPassword) {
         dispatch({ type: 'ADMIN_AUTH_SUCCESS' });
         showToast('✅ Welcome, Admin!');
         setPassword('');

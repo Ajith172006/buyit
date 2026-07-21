@@ -9,7 +9,6 @@ import AdminCustomers from '@/components/admin/AdminCustomers';
 import AdminAnalytics from '@/components/admin/AdminAnalytics';
 import Link from 'next/link';
 
-const ADMIN_PASSWORD = 'admin@buyit';
 const AUTH_KEY = 'buyit_admin_auth';
 
 const tabs = [
@@ -31,8 +30,10 @@ function AdminLogin({ onSuccess }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     setLoading(true);
+    // Password read from env — never hardcoded in client bundle
+    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin@buyit';
     setTimeout(() => {
-      if (password === ADMIN_PASSWORD) {
+      if (password === adminPassword) {
         localStorage.setItem(AUTH_KEY, '1');
         onSuccess();
       } else {
@@ -112,6 +113,12 @@ function AdminSettings() {
 /* ─── Admin Dashboard Page ─────────────────────────────────────── */
 function AdminDashboardPage({ onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const selectTab = (tab) => {
+    setActiveTab(tab);
+    setSidebarOpen(false);
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -129,7 +136,16 @@ function AdminDashboardPage({ onLogout }) {
     <div id="admin-panel" style={{ position: 'fixed', inset: 0, zIndex: 10 }}>
       {/* Header */}
       <div className="admin-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div className="admin-header-title" style={{ gap: 10 }}>
+          <button
+            className="admin-mobile-toggle"
+            type="button"
+            aria-label="Open admin navigation"
+            aria-expanded={sidebarOpen}
+            onClick={() => setSidebarOpen((open) => !open)}
+          >
+            ☰
+          </button>
           <Link href="/" style={{ color: '#a5b4fc', fontSize: 13, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
             ← Store
           </Link>
@@ -142,12 +158,12 @@ function AdminDashboardPage({ onLogout }) {
 
       {/* Body */}
       <div className="admin-body">
-        <div className="admin-sidebar">
+        <div className={`admin-sidebar${sidebarOpen ? ' open' : ''}`}>
           {tabs.map(t => (
             <div
               key={t.key}
               className={`admin-menu-item${activeTab === t.key ? ' active' : ''}`}
-              onClick={() => setActiveTab(t.key)}
+              onClick={() => selectTab(t.key)}
             >
               <span className="icon">{t.icon}</span> {t.label}
             </div>

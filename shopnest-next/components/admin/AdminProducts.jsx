@@ -8,13 +8,37 @@ export default function AdminProducts() {
   const { state, dispatch, showToast } = useStore();
   const [form, setForm] = useState({
     name: '', brand: '', category: 'Electronics', price: '', mrp: '',
-    rating: '', image: '', stock: '', desc: '',
+    rating: '', images: [], stock: '', desc: '',
   });
+
+  const [editingId, setEditingId] = useState(null);
 
   const handleChange = (field, val) => setForm(f => ({ ...f, [field]: val }));
 
+  const handleImageSelection = async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+    if (form.images.length + files.length > 5) { showToast('You can upload a maximum of 5 images'); return; }
+    if (files.some((file) => !file.type.startsWith('image/'))) { showToast('Please select image files only'); return; }
+    if (files.some((file) => file.size > 2 * 1024 * 1024)) { showToast('Each image must be 2 MB or smaller'); return; }
+    const existingSize = form.images.reduce((total, image) => total + Math.ceil((image.length * 3) / 4), 0);
+    if (existingSize + files.reduce((total, file) => total + file.size, 0) > 6 * 1024 * 1024) { showToast('Combined image size must be 6 MB or smaller'); return; }
+
+    const images = await Promise.all(files.map((file) => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    })));
+    handleChange('images', [...form.images, ...images]);
+    event.target.value = '';
+  };
+
+  const removeImage = (index) => handleChange('images', form.images.filter((_, imageIndex) => imageIndex !== index));
+
   const addProduct = async () => {
     if (!form.name.trim()) { showToast('Please enter a product name'); return; }
+    if (form.images.length === 0) { showToast('Please upload at least one product image'); return; }
     const price = parseInt(form.price) || 999;
     const mrp = parseInt(form.mrp) || 1499;
     const product = {
@@ -25,46 +49,83 @@ export default function AdminProducts() {
       originalPrice: mrp,
       discount: Math.round((mrp - price) / mrp * 100),
       rating: parseFloat(form.rating) || 4.0,
-      image: form.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&q=80',
+      image: form.images[0],
+      images: form.images,
       stock: parseInt(form.stock) || 50,
       description: form.desc || 'Quality product',
     };
-    
+
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const res = await fetch(`${apiUrl}/api/products`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(product)
-      });
-      const json = await res.json();
-      
-      if (res.ok && json.success) {
-        // Map backend format to frontend format
-        const newP = json.data;
-        const mappedProduct = {
-          id: newP._id,
-          name: newP.name,
-          brand: newP.brand || 'Generic',
-          category: newP.category,
-          price: newP.price,
-          mrp: newP.originalPrice,
-          discount: newP.discount,
-          rating: newP.rating,
-          reviews: newP.reviews?.length || 0,
-          image: newP.image,
-          stock: newP.stock,
-          desc: newP.description,
-        };
-        dispatch({ type: 'ADD_PRODUCT', product: mappedProduct });
-        showToast(`✅ Product "${form.name}" added!`);
-        setForm({ name:'',brand:'',category:'Electronics',price:'',mrp:'',rating:'',image:'',stock:'',desc:'' });
+      const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
+
+      if (editingId) {
+        // UPDATE existing product
+        const res = await fetch(`${apiUrl}/api/products/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminKey}` },
+          body: JSON.stringify(product)
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          const updatedP = json.data;
+          const mapped = {
+            id: updatedP._id,
+            name: updatedP.name,
+            brand: updatedP.brand || 'Generic',
+            category: updatedP.category,
+            price: updatedP.price,
+            mrp: updatedP.originalPrice,
+            discount: updatedP.discount,
+            rating: updatedP.rating,
+            reviews: Array.isArray(updatedP.reviews) ? updatedP.reviews : [],
+            image: updatedP.image,
+            images: updatedP.images?.length ? updatedP.images : [updatedP.image],
+            stock: updatedP.stock,
+            desc: updatedP.description,
+          };
+          dispatch({ type: 'SET_PRODUCTS', products: state.products.map(p => p.id === editingId ? mapped : p) });
+          showToast(`✅ Product "${form.name}" updated!`);
+          setEditingId(null);
+          setForm({ name:'',brand:'',category:'Electronics',price:'',mrp:'',rating:'',images:[],stock:'',desc:'' });
+        } else {
+          showToast(json.message || 'Error updating product');
+        }
       } else {
-        showToast(json.message || 'Error adding product');
+        // CREATE new product
+        const res = await fetch(`${apiUrl}/api/products`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminKey}` },
+          body: JSON.stringify(product)
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          const newP = json.data;
+          const mappedProduct = {
+            id: newP._id,
+            name: newP.name,
+            brand: newP.brand || 'Generic',
+            category: newP.category,
+            price: newP.price,
+            mrp: newP.originalPrice,
+            discount: newP.discount,
+            rating: newP.rating,
+            reviews: Array.isArray(newP.reviews) ? newP.reviews : [],
+            image: newP.image,
+            images: newP.images?.length ? newP.images : [newP.image],
+            stock: newP.stock,
+            desc: newP.description,
+          };
+          dispatch({ type: 'ADD_PRODUCT', product: mappedProduct });
+          showToast(`✅ Product "${form.name}" added!`);
+          setForm({ name:'',brand:'',category:'Electronics',price:'',mrp:'',rating:'',images:[],stock:'',desc:'' });
+        } else {
+          showToast(json.message || 'Error adding product');
+        }
       }
     } catch (err) {
       console.error(err);
-      showToast('Error adding product');
+      showToast('Error saving product');
     }
   };
 
@@ -72,7 +133,11 @@ export default function AdminProducts() {
     if (!confirm('Delete this product?')) return;
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const res = await fetch(`${apiUrl}/api/products/${id}`, { method: 'DELETE' });
+      const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
+      const res = await fetch(`${apiUrl}/api/products/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${adminKey}` },
+      });
       if (res.ok) {
         dispatch({ type: 'DELETE_PRODUCT', id });
         showToast('Product deleted');
@@ -88,15 +153,21 @@ export default function AdminProducts() {
   const editProduct = (id) => {
     const p = state.products.find(x => x.id === id);
     if (!p) return;
-    setForm({ name:p.name,brand:p.brand,category:p.category,price:p.price,mrp:p.mrp,rating:p.rating,image:p.image,stock:p.stock,desc:p.desc });
-    dispatch({ type: 'DELETE_PRODUCT', id });
-    showToast('Edit mode: modify and re-save');
+    setEditingId(id);
+    setForm({ name:p.name, brand:p.brand, category:p.category, price:p.price, mrp:p.mrp, rating:p.rating, images:p.images?.length ? p.images : [p.image], stock:p.stock, desc:p.desc });
+    showToast('Edit mode: modify and click "Update Product"');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm({ name:'',brand:'',category:'Electronics',price:'',mrp:'',rating:'',images:[],stock:'',desc:'' });
   };
 
   return (
     <div className="admin-section active" id="sec-products">
       <div className="add-product-form">
-        <h2>➕ Add New Product</h2>
+        <h2>{editingId ? '✏️ Edit Product' : '➕ Add New Product'}</h2>
         <div className="form-grid">
           <div className="form-group">
             <label>Product Name</label>
@@ -124,9 +195,21 @@ export default function AdminProducts() {
             <label>Rating (1-5)</label>
             <input type="number" value={form.rating} onChange={e => handleChange('rating', e.target.value)} min="1" max="5" step="0.1" placeholder="e.g. 4.2" />
           </div>
-          <div className="form-group">
-            <label>Image URL</label>
-            <input type="text" value={form.image} onChange={e => handleChange('image', e.target.value)} placeholder="e.g. https://..." />
+          <div className="form-group full">
+            <label>Product Images (up to 5)</label>
+            <input className="product-image-input" type="file" accept="image/*" multiple onChange={handleImageSelection} />
+            <small className="image-upload-help">Choose images from your device. PNG, JPG, and WEBP up to 2 MB each.</small>
+            {form.images.length > 0 && (
+              <div className="image-upload-preview">
+                {form.images.map((image, index) => (
+                  <div className="image-upload-item" key={`${image.slice(0, 24)}-${index}`}>
+                    <img src={image} alt={`Product upload ${index + 1}`} />
+                    {index === 0 && <span>Primary</span>}
+                    <button type="button" onClick={() => removeImage(index)} aria-label={`Remove image ${index + 1}`}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="form-group">
             <label>Stock</label>
@@ -137,12 +220,21 @@ export default function AdminProducts() {
             <textarea rows={3} value={form.desc} onChange={e => handleChange('desc', e.target.value)} placeholder="Product description..." style={{ resize: 'vertical' }} />
           </div>
         </div>
-        <button className="form-submit" onClick={addProduct}>Add Product</button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button className="form-submit" onClick={addProduct}>
+            {editingId ? 'Update Product' : 'Add Product'}
+          </button>
+          {editingId && (
+            <button className="form-submit" onClick={cancelEdit} style={{ background: '#6b7280' }}>
+              Cancel Edit
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="admin-table-wrap">
         <h2>All Products (<span id="prod-count-admin">{state.products.length}</span>)</h2>
-        <table className="admin-table">
+        <table className="admin-table admin-products-table">
           <thead>
             <tr><th>ID</th><th>Product</th><th>Category</th><th>Price</th><th>MRP</th><th>Disc%</th><th>Stock</th><th>Rating</th><th>Actions</th></tr>
           </thead>
@@ -168,6 +260,31 @@ export default function AdminProducts() {
             ))}
           </tbody>
         </table>
+        <div className="admin-mobile-product-list">
+          {state.products.map(p => (
+            <article className="admin-mobile-product-card" key={p.id}>
+              <div className="admin-mobile-product-heading">
+                <img src={p.image} alt="" />
+                <div>
+                  <strong>{p.name}</strong>
+                  <span>ID: {p.id}</span>
+                </div>
+              </div>
+              <dl className="admin-mobile-product-details">
+                <div><dt>Category</dt><dd>{p.category}</dd></div>
+                <div><dt>Price</dt><dd>₹{formatNumber(p.price)}</dd></div>
+                <div><dt>MRP</dt><dd>₹{formatNumber(p.mrp)}</dd></div>
+                <div><dt>Discount</dt><dd className="admin-discount-value">{p.discount}%</dd></div>
+                <div><dt>Stock</dt><dd>{p.stock}</dd></div>
+                <div><dt>Rating</dt><dd>{p.rating} ★</dd></div>
+              </dl>
+              <div className="admin-mobile-product-actions">
+                <button className="action-btn edit" onClick={() => editProduct(p.id)}>Edit</button>
+                <button className="action-btn del" onClick={() => deleteProduct(p.id)}>Delete</button>
+              </div>
+            </article>
+          ))}
+        </div>
       </div>
     </div>
   );

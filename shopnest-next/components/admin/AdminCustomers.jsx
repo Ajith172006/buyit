@@ -5,7 +5,7 @@ export default function AdminCustomers() {
   return (
     <div className="admin-section active" id="sec-customers">
       <div className="admin-table-wrap">
-        <h2>Customers (2841)</h2>
+        <h2>Customers ({customers.length})</h2>
         <table className="admin-table">
           <thead>
             <tr><th>Name</th><th>Email</th><th>City</th><th>Orders</th><th>Total Spent</th><th>Joined</th></tr>

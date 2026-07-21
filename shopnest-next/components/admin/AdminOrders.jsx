@@ -6,14 +6,22 @@ export default function AdminOrders() {
   const { allOrders, dispatch, showToast } = useStore();
 
   const statusClass = (s) =>
-    s === 'delivered' ? 'delivered' : s === 'shipped' ? 'shipped' : s === 'pending' ? 'pending' : 'cancelled';
+    s === 'delivered' ? 'delivered'
+    : s === 'shipped' ? 'shipped'
+    : s === 'confirmed' ? 'shipped'
+    : s === 'pending' ? 'pending'
+    : 'cancelled';
 
   const updateStatus = async (id, status) => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
       const res = await fetch(`${apiUrl}/api/orders/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminKey}`,
+        },
         body: JSON.stringify({ orderStatus: status })
       });
       if (res.ok) {
@@ -52,11 +60,12 @@ export default function AdminOrders() {
                 <td><span className={`status-badge ${statusClass(o.status)}`}>{o.status}</span></td>
                 <td>
                   <select
-                    defaultValue={o.status}
+                    value={o.status}
                     onChange={e => updateStatus(o.id, e.target.value)}
                     style={{ fontSize: '11px', padding: '3px 6px', border: '1px solid #ddd', borderRadius: '3px' }}
                   >
                     <option value="pending">pending</option>
+                    <option value="confirmed">confirmed</option>
                     <option value="shipped">shipped</option>
                     <option value="delivered">delivered</option>
                     <option value="cancelled">cancelled</option>

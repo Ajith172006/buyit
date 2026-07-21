@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { formatNumber } from '@/lib/utils';
 
 export default function SellerPage() {
   const [isRegistered, setIsRegistered] = useState(false);
@@ -13,17 +14,18 @@ export default function SellerPage() {
     category: 'Electronics',
     password: '',
   });
-  
+
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
-
   const [toast, setToast] = useState('');
   const [newProduct, setNewProduct] = useState({ name: '', price: '', stock: '', category: 'Electronics' });
   const [showAddForm, setShowAddForm] = useState(false);
 
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
+
   const fetchProducts = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const res = await fetch(`${apiUrl}/api/products`);
       if (res.ok) {
         const json = await res.json();
@@ -33,7 +35,7 @@ export default function SellerPage() {
             name: p.name,
             price: p.price,
             stock: p.stock,
-            sales: Array.isArray(p.reviews) ? p.reviews.length * 2 : (p.reviews || 0) * 2,
+            sales: Array.isArray(p.reviews) ? p.reviews.length * 2 : 0,
             status: 'Active'
           }));
           setProducts(mapped);
@@ -46,8 +48,9 @@ export default function SellerPage() {
 
   const fetchOrders = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const res = await fetch(`${apiUrl}/api/orders`);
+      const res = await fetch(`${apiUrl}/api/orders`, {
+        headers: { 'Authorization': `Bearer ${adminKey}` },
+      });
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
@@ -56,7 +59,10 @@ export default function SellerPage() {
             customer: o.shippingAddress?.name || o.userId?.name || 'Guest',
             item: o.items.map(item => item.name).join(', '),
             total: o.totalAmount,
-            status: o.orderStatus === 'pending' ? 'Pending' : o.orderStatus === 'shipped' ? 'Shipped' : o.orderStatus === 'delivered' ? 'Delivered' : 'Cancelled'
+            status: o.orderStatus === 'pending' ? 'Pending'
+              : o.orderStatus === 'shipped' ? 'Shipped'
+              : o.orderStatus === 'delivered' ? 'Delivered'
+              : 'Cancelled'
           }));
           setOrders(mapped);
         }
@@ -101,7 +107,7 @@ export default function SellerPage() {
     }
     const product = {
       name: newProduct.name,
-      brand: 'Generic',
+      brand: formData.storeName || 'Generic',
       category: newProduct.category || 'Electronics',
       price: parseFloat(newProduct.price),
       originalPrice: parseFloat(newProduct.price) * 1.25,
@@ -112,10 +118,12 @@ export default function SellerPage() {
       description: 'Quality product listed via Seller Central',
     };
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const res = await fetch(`${apiUrl}/api/products`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminKey}`,
+        },
         body: JSON.stringify(product)
       });
       const json = await res.json();
@@ -125,7 +133,7 @@ export default function SellerPage() {
         setNewProduct({ name: '', price: '', stock: '', category: 'Electronics' });
         setShowAddForm(false);
       } else {
-        showToastMsg('Error listing product');
+        showToastMsg(json.message || 'Error listing product');
       }
     } catch (err) {
       console.error(err);
@@ -135,10 +143,12 @@ export default function SellerPage() {
 
   const handleShipOrder = async (orderId) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const res = await fetch(`${apiUrl}/api/orders/${orderId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminKey}`,
+        },
         body: JSON.stringify({ orderStatus: 'shipped' })
       });
       if (res.ok) {
@@ -167,7 +177,7 @@ export default function SellerPage() {
   };
 
   return (
-    <div style={{ fontFamily: 'Inter, sans-serif', minHeight: '100vh', background: '#f8fafc', color: '#1e293b' }}>
+    <div className="seller-page" style={{ fontFamily: 'Inter, sans-serif', minHeight: '100vh', background: '#f8fafc', color: '#1e293b' }}>
       
       {/* Toast Notification */}
       {toast && (
@@ -182,7 +192,7 @@ export default function SellerPage() {
       )}
 
       {/* Header */}
-      <header style={{
+      <header className="seller-header" style={{
         background: '#ffffff', borderBottom: '1px solid #e2e8f0', padding: '0 24px', height: '64px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100
       }}>
@@ -231,7 +241,7 @@ export default function SellerPage() {
           </div>
 
           {/* Form and Features Container */}
-          <div style={{ maxWidth: '1100px', margin: '-40px auto 60px auto', padding: '0 24px', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px' }}>
+          <div className="seller-register-grid" style={{ maxWidth: '1100px', margin: '-40px auto 60px auto', padding: '0 24px', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px' }}>
             
             {/* Left Column: Registration Form Card */}
             <div style={{
@@ -241,7 +251,7 @@ export default function SellerPage() {
               <h2 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '6px', color: '#0f172a' }}>Register as a Seller</h2>
               <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '24px' }}>Fill in your business details to start listing products instantly.</p>
               
-              <form onSubmit={handleRegister} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <form className="seller-register-form" onSubmit={handleRegister} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Full Name</label>
                   <input 
@@ -332,10 +342,10 @@ export default function SellerPage() {
         </div>
       ) : (
         /* SELLER DASHBOARD VIEW */
-        <div style={{ maxWidth: '1100px', margin: '32px auto', padding: '0 24px' }}>
+        <div className="seller-dashboard" style={{ maxWidth: '1100px', margin: '32px auto', padding: '0 24px' }}>
           
           {/* Dashboard Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '32px' }}>
+          <div className="seller-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '32px' }}>
             <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
               <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '6px' }}>Store Name</div>
               <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>{formData.storeName}</div>
@@ -354,7 +364,7 @@ export default function SellerPage() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '32px' }}>
+          <div className="seller-workspace" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '32px' }}>
             
             {/* Products Table section */}
             <div style={{ background: '#fff', borderRadius: '20px', padding: '28px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
@@ -369,7 +379,7 @@ export default function SellerPage() {
               </div>
 
               {showAddForm && (
-                <form onSubmit={handleAddProduct} style={{
+                <form className="seller-add-product-form" onSubmit={handleAddProduct} style={{
                   background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px',
                   display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'
                 }}>
@@ -417,7 +427,7 @@ export default function SellerPage() {
                   {products.map(p => (
                     <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '14px 6px', fontWeight: 600, color: '#0f172a' }}>{p.name}</td>
-                      <td style={{ padding: '14px 6px' }}>₹{p.price.toLocaleString()}</td>
+                      <td style={{ padding: '14px 6px' }}>₹{formatNumber(p.price)}</td>
                       <td style={{ padding: '14px 6px', color: p.stock < 10 ? '#ef4444' : '#0f172a', fontWeight: p.stock < 10 ? 'bold' : 'normal' }}>{p.stock} units</td>
                       <td style={{ padding: '14px 6px' }}>{p.sales} sold</td>
                       <td style={{ padding: '14px 6px' }}>
@@ -446,7 +456,7 @@ export default function SellerPage() {
                     <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '2px' }}>{o.item}</div>
                     <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px' }}>Customer: {o.customer}</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <strong style={{ fontSize: '14px' }}>₹{o.total.toLocaleString()}</strong>
+                      <strong style={{ fontSize: '14px' }}>₹{formatNumber(o.total)}</strong>
                       {o.status === 'Pending' && (
                         <button 
                           onClick={() => handleShipOrder(o.id)}
