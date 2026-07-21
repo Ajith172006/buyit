@@ -1,3 +1,7 @@
-# Ignore standalone Express backend folder from Vercel Serverless Function scanner
+# Ignore standalone Express backend server files, but preserve shopnest-next/api/models
 api/
-shopnest-next/api/
+shopnest-next/api/server.js
+shopnest-next/api/seed.js
+shopnest-next/api/routes/
+shopnest-next/api/middleware/
+shopnest-next/api/config/
