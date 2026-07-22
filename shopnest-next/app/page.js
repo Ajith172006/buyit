@@ -38,6 +38,47 @@ export default function HomePage() {
   }, [state.products, state.activeCategory, state.activeSearch, state.selectedBrands]);
 
   useGSAP(() => {
+    // ── Page entrance animations ───────────────────────────────────────────
+    gsap.from('#catnav', {
+      y: -16,
+      opacity: 0,
+      duration: 0.45,
+      ease: 'power3.out'
+    });
+
+    gsap.from('.cat-tab', {
+      opacity: 0,
+      y: 14,
+      scale: 0.92,
+      duration: 0.4,
+      ease: 'back.out(1.4)',
+      stagger: 0.04,
+      delay: 0.08,
+    });
+
+    gsap.from('#offers', {
+      y: -10,
+      opacity: 0,
+      duration: 0.4,
+      ease: 'power3.out'
+    });
+
+    gsap.from('.offer-chip', {
+      opacity: 0,
+      x: -20,
+      duration: 0.4,
+      ease: 'power2.out',
+      stagger: 0.05,
+      delay: 0.12,
+    });
+
+    gsap.from('#hero', {
+      opacity: 0,
+      duration: 0.6,
+      ease: 'power3.out',
+      delay: 0.18
+    });
+
     // ── Hero parallax ──────────────────────────────────────────────────────
     gsap.to('#hero', {
       backgroundPosition: '50% 100%',
