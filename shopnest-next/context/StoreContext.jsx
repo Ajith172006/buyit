@@ -326,7 +326,7 @@ export function StoreProvider({ children }) {
     fetchAdminOrders();
   }, [state.adminAuthenticated]);
 
-  // URL synchronization for modals (product details and user profile)
+  // URL synchronization for modals (product details, user profile, and video play)
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -334,17 +334,22 @@ export function StoreProvider({ children }) {
     const url = new URL(window.location.href);
     const prodId = url.searchParams.get('product');
     const showProfile = url.searchParams.get('profile') === 'true';
+    const showPlay = url.searchParams.get('play') === 'true';
     if (prodId) {
       dispatch({ type: 'SHOW_DETAIL', id: prodId });
     }
     if (showProfile) {
       dispatch({ type: 'OPEN_USER_PROFILE' });
     }
+    if (showPlay) {
+      dispatch({ type: 'OPEN_VIDEO_MODAL' });
+    }
 
     const handlePopState = () => {
       const currentUrl = new URL(window.location.href);
       const currentProdId = currentUrl.searchParams.get('product');
       const currentShowProfile = currentUrl.searchParams.get('profile') === 'true';
+      const currentShowPlay = currentUrl.searchParams.get('play') === 'true';
 
       if (currentProdId) {
         dispatch({ type: 'SHOW_DETAIL', id: currentProdId });
@@ -356,6 +361,12 @@ export function StoreProvider({ children }) {
         dispatch({ type: 'OPEN_USER_PROFILE' });
       } else {
         dispatch({ type: 'CLOSE_USER_PROFILE' });
+      }
+
+      if (currentShowPlay) {
+        dispatch({ type: 'OPEN_VIDEO_MODAL' });
+      } else {
+        dispatch({ type: 'CLOSE_VIDEO_MODAL' });
       }
     };
 
@@ -398,6 +409,24 @@ export function StoreProvider({ children }) {
       }
     }
   }, [state.userProfileOpen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    const currentParam = url.searchParams.get('play');
+
+    if (state.videoModalOpen) {
+      if (currentParam !== 'true') {
+        url.searchParams.set('play', 'true');
+        window.history.pushState({ videoModalOpen: true }, '', url.pathname + url.search + url.hash);
+      }
+    } else {
+      if (currentParam !== null) {
+        url.searchParams.delete('play');
+        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+      }
+    }
+  }, [state.videoModalOpen]);
 
   const getFiltered = useCallback(() => {
     let arr = state.products.filter(p => {
