@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/context/StoreContext';
+import Link from 'next/link';
 
 export default function Topbar() {
   const { state, dispatch, cartCount } = useStore();
@@ -11,6 +12,12 @@ export default function Topbar() {
   const locationText = state.userProfile?.address
     ? `HOME ${state.userProfile.address}`
     : 'Select delivery location';
+
+  const handleLogoClick = () => {
+    dispatch({ type: 'SET_CATEGORY', category: 'all' });
+    dispatch({ type: 'SET_SEARCH', search: '' });
+    router.push('/');
+  };
 
   const handleProfileClick = () => {
     if (state.userAuthenticated) {
@@ -60,7 +67,7 @@ export default function Topbar() {
       {/* --- DESKTOP TOPBAR --- */}
       <div id="topbar" className="desktop-only">
         <div className="topbar-inner-container">
-          <div className="logo" onClick={() => dispatch({ type: 'SET_CATEGORY', category: 'all' })}>
+          <div className="logo" onClick={handleLogoClick}>
             <span className="logo-brand">BuyIt</span>
             <span className="logo-sub">Explore <span className="plus-color">Plus ✦</span></span>
           </div>
@@ -80,6 +87,12 @@ export default function Topbar() {
           </div>
           
           <div className="nav-actions">
+            <Link href="/seller" className="become-seller-link">
+              Become a Seller
+            </Link>
+            <Link href="/admin" className="become-seller-link" style={{ marginRight: '12px' }}>
+              Admin
+            </Link>
             {state.authLoading ? (
               <button className="nav-btn" disabled>
                 ⏳ Loading...
@@ -125,7 +138,7 @@ export default function Topbar() {
       {/* --- MOBILE TOPBAR --- */}
       <div id="mobile-topbar" className="mobile-only">
         <div className="mobile-header-top">
-          <div className="mobile-logo" onClick={() => dispatch({ type: 'SET_CATEGORY', category: 'all' })}>
+          <div className="mobile-logo" onClick={handleLogoClick}>
             <div className="ml-icon">🛍</div>
             <div className="ml-text">BuyIt</div>
           </div>

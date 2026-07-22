@@ -1,8 +1,11 @@
 'use client';
 import { useStore } from '@/context/StoreContext';
+import { useRouter, usePathname } from 'next/navigation';
 
 export default function MobileNav() {
   const { state, dispatch, cartCount } = useStore();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const handleAccountClick = () => {
     if (state.userAuthenticated) {
@@ -14,7 +17,15 @@ export default function MobileNav() {
 
   return (
     <div id="mobile-bottom-nav">
-      <button className="mob-nav-item active" onClick={() => window.scrollTo(0,0)}>
+      <button className={`mob-nav-item${pathname === '/' ? ' active' : ''}`} onClick={() => {
+        if (pathname === '/') {
+          window.scrollTo(0, 0);
+        } else {
+          router.push('/');
+          dispatch({ type: 'SET_CATEGORY', category: 'all' });
+          dispatch({ type: 'SET_SEARCH', search: '' });
+        }
+      }}>
         <div className="mob-icon">🏠</div>
         <span>Home</span>
       </button>

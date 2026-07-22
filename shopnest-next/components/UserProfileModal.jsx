@@ -5,6 +5,7 @@ import { firebaseAuth } from '@/lib/firebaseClient';
 import { signOut } from 'firebase/auth';
 import { formatNumber } from '@/lib/utils';
 import ProductCard from './ProductCard';
+import Link from 'next/link';
 
 export default function UserProfileModal() {
   const { state, dispatch, showToast } = useStore();
@@ -119,6 +120,14 @@ export default function UserProfileModal() {
             onClick={() => setActiveTab('address')}
           >
             <span className="icon">🏠</span> Address Book
+          </div>
+          <div style={{ marginTop: 'auto', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+            <Link href="/seller" className="admin-menu-item" style={{ color: '#2563eb', textDecoration: 'none' }} onClick={() => dispatch({ type: 'CLOSE_USER_PROFILE' })}>
+              <span className="icon">💼</span> Seller Portal
+            </Link>
+            <Link href="/admin" className="admin-menu-item" style={{ color: '#4f46e5', textDecoration: 'none' }} onClick={() => dispatch({ type: 'CLOSE_USER_PROFILE' })}>
+              <span className="icon">🔑</span> Admin Dashboard
+            </Link>
           </div>
         </div>
 
