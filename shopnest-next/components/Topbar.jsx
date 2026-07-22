@@ -87,12 +87,6 @@ export default function Topbar() {
           </div>
           
           <div className="nav-actions">
-            <Link href="/seller" className="become-seller-link">
-              Become a Seller
-            </Link>
-            <Link href="/admin" className="become-seller-link" style={{ marginRight: '12px' }}>
-              Admin
-            </Link>
             {state.authLoading ? (
               <button className="nav-btn" disabled>
                 ⏳ Loading...
