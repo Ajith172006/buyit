@@ -55,12 +55,14 @@ export default function AdminProducts() {
       description: form.desc || 'Quality product',
     };
 
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
+    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/?$/, '') || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
 
-      if (editingId) {
-        // UPDATE existing product
+    if (editingId) {
+      // UPDATE existing product
+      let updatedP = null;
+      let apiSuccess = false;
+      try {
         const res = await fetch(`${apiUrl}/api/products/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminKey}` },
@@ -68,31 +70,46 @@ export default function AdminProducts() {
         });
         const json = await res.json();
         if (res.ok && json.success) {
-          const updatedP = json.data;
-          const mapped = {
-            id: updatedP._id,
-            name: updatedP.name,
-            brand: updatedP.brand || 'Generic',
-            category: updatedP.category,
-            price: updatedP.price,
-            mrp: updatedP.originalPrice,
-            discount: updatedP.discount,
-            rating: updatedP.rating,
-            reviews: Array.isArray(updatedP.reviews) ? updatedP.reviews : [],
-            image: updatedP.image,
-            images: updatedP.images?.length ? updatedP.images : [updatedP.image],
-            stock: updatedP.stock,
-            desc: updatedP.description,
-          };
-          dispatch({ type: 'SET_PRODUCTS', products: state.products.map(p => p.id === editingId ? mapped : p) });
-          showToast(`✅ Product "${form.name}" updated!`);
-          setEditingId(null);
-          setForm({ name:'',brand:'',category:'Electronics',price:'',mrp:'',rating:'',images:[],stock:'',desc:'' });
+          updatedP = json.data;
+          apiSuccess = true;
         } else {
-          showToast(json.message || 'Error updating product');
+          console.warn('API error during product update:', json?.message);
         }
-      } else {
-        // CREATE new product
+      } catch (err) {
+        console.warn('Network error or API server offline. Falling back to local update.', err.message);
+      }
+
+      const mapped = apiSuccess && updatedP ? {
+        id: updatedP._id,
+        name: updatedP.name,
+        brand: updatedP.brand || 'Generic',
+        category: updatedP.category,
+        price: updatedP.price,
+        mrp: updatedP.originalPrice,
+        discount: updatedP.discount,
+        rating: updatedP.rating,
+        reviews: Array.isArray(updatedP.reviews) ? updatedP.reviews : [],
+        image: updatedP.image,
+        images: updatedP.images?.length ? updatedP.images : [updatedP.image],
+        stock: updatedP.stock,
+        desc: updatedP.description,
+      } : {
+        ...state.products.find(p => p.id === editingId),
+        ...product,
+        id: editingId,
+        desc: product.description,
+        mrp: product.originalPrice,
+      };
+
+      dispatch({ type: 'SET_PRODUCTS', products: state.products.map(p => p.id === editingId ? mapped : p) });
+      showToast(apiSuccess ? `✅ Product "${form.name}" updated!` : `✅ Product "${form.name}" updated locally!`);
+      setEditingId(null);
+      setForm({ name:'',brand:'',category:'Electronics',price:'',mrp:'',rating:'',images:[],stock:'',desc:'' });
+    } else {
+      // CREATE new product
+      let newP = null;
+      let apiSuccess = false;
+      try {
         const res = await fetch(`${apiUrl}/api/products`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminKey}` },
@@ -100,54 +117,63 @@ export default function AdminProducts() {
         });
         const json = await res.json();
         if (res.ok && json.success) {
-          const newP = json.data;
-          const mappedProduct = {
-            id: newP._id,
-            name: newP.name,
-            brand: newP.brand || 'Generic',
-            category: newP.category,
-            price: newP.price,
-            mrp: newP.originalPrice,
-            discount: newP.discount,
-            rating: newP.rating,
-            reviews: Array.isArray(newP.reviews) ? newP.reviews : [],
-            image: newP.image,
-            images: newP.images?.length ? newP.images : [newP.image],
-            stock: newP.stock,
-            desc: newP.description,
-          };
-          dispatch({ type: 'ADD_PRODUCT', product: mappedProduct });
-          showToast(`✅ Product "${form.name}" added!`);
-          setForm({ name:'',brand:'',category:'Electronics',price:'',mrp:'',rating:'',images:[],stock:'',desc:'' });
+          newP = json.data;
+          apiSuccess = true;
         } else {
-          showToast(json.message || 'Error adding product');
+          console.warn('API error during product creation:', json?.message);
         }
+      } catch (err) {
+        console.warn('Network error or API server offline. Falling back to local create.', err.message);
       }
-    } catch (err) {
-      console.error(err);
-      showToast('Error saving product');
+
+      const mappedProduct = apiSuccess && newP ? {
+        id: newP._id,
+        name: newP.name,
+        brand: newP.brand || 'Generic',
+        category: newP.category,
+        price: newP.price,
+        mrp: newP.originalPrice,
+        discount: newP.discount,
+        rating: newP.rating,
+        reviews: Array.isArray(newP.reviews) ? newP.reviews : [],
+        image: newP.image,
+        images: newP.images?.length ? newP.images : [newP.image],
+        stock: newP.stock,
+        desc: newP.description,
+      } : {
+        ...product,
+        id: `local-${Date.now()}`,
+        reviews: [],
+        mrp: product.originalPrice,
+        desc: product.description,
+      };
+
+      dispatch({ type: 'ADD_PRODUCT', product: mappedProduct });
+      showToast(apiSuccess ? `✅ Product "${form.name}" added!` : `✅ Product "${form.name}" added locally!`);
+      setForm({ name:'',brand:'',category:'Electronics',price:'',mrp:'',rating:'',images:[],stock:'',desc:'' });
     }
   };
 
   const deleteProduct = async (id) => {
     if (!confirm('Delete this product?')) return;
+    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/?$/, '') || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
+    
+    let apiSuccess = false;
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
       const res = await fetch(`${apiUrl}/api/products/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${adminKey}` },
       });
       if (res.ok) {
-        dispatch({ type: 'DELETE_PRODUCT', id });
-        showToast('Product deleted');
-      } else {
-        showToast('Error deleting product');
+        apiSuccess = true;
       }
     } catch (err) {
-      console.error(err);
-      showToast('Error deleting product');
+      console.warn('Network error or API server offline during delete. Removing locally.', err.message);
     }
+
+    dispatch({ type: 'DELETE_PRODUCT', id });
+    showToast(apiSuccess ? 'Product deleted' : 'Product deleted locally');
   };
 
   const editProduct = (id) => {

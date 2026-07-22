@@ -30,7 +30,7 @@ export default function UserProfileModal() {
 
     setLoadingOrders(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/?$/, '') || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const res = await fetch(`${apiUrl}/api/orders/user/${state.userProfile.id}`);
       if (res.ok) {
         const json = await res.json();
@@ -122,7 +122,7 @@ export default function UserProfileModal() {
           </div>
         </div>
 
-        <div className="admin-content">
+        <div className="admin-content" data-lenis-prevent>
           {activeTab === 'orders' && (
             <div className="admin-section active">
               <h2>My Order History</h2>

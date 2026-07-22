@@ -21,7 +21,7 @@ export default function SellerPage() {
   const [newProduct, setNewProduct] = useState({ name: '', price: '', stock: '', category: 'Electronics' });
   const [showAddForm, setShowAddForm] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/?$/, '') || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
 
   const fetchProducts = async () => {

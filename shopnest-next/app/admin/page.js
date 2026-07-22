@@ -169,7 +169,7 @@ function AdminDashboardPage({ onLogout }) {
             </div>
           ))}
         </div>
-        <div className="admin-content">
+        <div className="admin-content" data-lenis-prevent>
           {renderContent()}
         </div>
       </div>
