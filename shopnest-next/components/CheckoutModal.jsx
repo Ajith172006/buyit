@@ -243,7 +243,7 @@ export default function CheckoutModal() {
     <>
       <div id="overlay" className="show" onClick={() => dispatch({ type: 'CLOSE_CHECKOUT' })} />
       
-      <div id="checkout-modal" className="open" style={{ width: '720px', padding: '24px', maxHeight: '95vh', overflowY: 'auto', borderRadius: '8px' }}>
+      <div id="checkout-modal" className="open" style={{ width: '100%', maxWidth: '720px', padding: '24px', maxHeight: '95vh', overflowY: 'auto', borderRadius: '8px' }}>
         <h2 style={{ fontSize: '20px', borderBottom: '1px solid #e0e0e0', paddingBottom: '12px', marginBottom: '16px' }}>
           🛒 BuyIT Checkout
         </h2>
@@ -438,24 +438,14 @@ export default function CheckoutModal() {
 
           {step === 3 && (
             <div className="checkout-step-body" style={{ padding: '0', background: '#fff' }}>
-              <div style={{ display: 'flex', minHeight: '360px' }}>
+              <div className="payment-methods-wrapper">
                 {/* Left Panel - Tabs */}
-                <div style={{ width: '200px', background: '#f5f7fa', borderRight: '1px solid #e0e0e0' }}>
+                <div className="payment-methods-sidebar">
                   {paymentTabs.map(tab => (
                     <div
                       key={tab.id}
                       onClick={() => setSubMethod(tab.id)}
-                      style={{
-                        padding: '14px 16px',
-                        fontSize: '13px',
-                        fontWeight: subMethod === tab.id ? 700 : 500,
-                        color: subMethod === tab.id ? '#2874f0' : '#212121',
-                        background: subMethod === tab.id ? '#fff' : 'transparent',
-                        borderLeft: subMethod === tab.id ? '4px solid #2874f0' : '4px solid transparent',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        borderBottom: '1px solid #e2e8f0'
-                      }}
+                      className={`payment-tab ${subMethod === tab.id ? 'active-tab' : ''}`}
                     >
                       {tab.label}
                     </div>
@@ -463,7 +453,7 @@ export default function CheckoutModal() {
                 </div>
 
                 {/* Right Panel - Active Form */}
-                <div style={{ flex: 1, padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div className="payment-methods-content">
                   <div style={{ flex: 1 }}>
                     {subMethod === 'UPI' && (
                       <div>
