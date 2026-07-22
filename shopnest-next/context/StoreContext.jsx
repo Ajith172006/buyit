@@ -326,6 +326,49 @@ export function StoreProvider({ children }) {
     fetchAdminOrders();
   }, [state.adminAuthenticated]);
 
+  // URL synchronization for product details modal
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Check query params on initial mount/page load
+    const url = new URL(window.location.href);
+    const prodId = url.searchParams.get('product');
+    if (prodId) {
+      dispatch({ type: 'SHOW_DETAIL', id: prodId });
+    }
+
+    const handlePopState = () => {
+      const currentUrl = new URL(window.location.href);
+      const currentProdId = currentUrl.searchParams.get('product');
+      if (currentProdId) {
+        dispatch({ type: 'SHOW_DETAIL', id: currentProdId });
+      } else {
+        dispatch({ type: 'HIDE_DETAIL' });
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    const currentParam = url.searchParams.get('product');
+
+    if (state.detailProductId) {
+      if (currentParam !== state.detailProductId) {
+        url.searchParams.set('product', state.detailProductId);
+        window.history.pushState({ detailProductId: state.detailProductId }, '', url.pathname + url.search + url.hash);
+      }
+    } else {
+      if (currentParam !== null) {
+        url.searchParams.delete('product');
+        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+      }
+    }
+  }, [state.detailProductId]);
+
   const getFiltered = useCallback(() => {
     let arr = state.products.filter(p => {
       if (state.activeCategory !== 'all' && p.category !== state.activeCategory) return false;
