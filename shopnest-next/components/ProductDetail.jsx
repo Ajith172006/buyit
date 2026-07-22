@@ -17,6 +17,20 @@ export default function ProductDetail() {
 
   const p = state.products.find(x => x.id === state.detailProductId);
 
+  // Safe gallery images resolution for top-level hooks
+  const galleryImages = p
+    ? (Array.isArray(p.images) && p.images.length > 0
+      ? p.images
+      : (Array.isArray(p.gallery) && p.gallery.length > 0
+        ? p.gallery
+        : [p.image]))
+    : [];
+  const hasMultipleImages = galleryImages.length > 1;
+  const selectGalleryImage = (index) => {
+    if (galleryImages.length === 0) return;
+    setGalleryIndex((index + galleryImages.length) % galleryImages.length);
+  };
+
   // Reset explore tab and scroll to top whenever a new product is opened
   useEffect(() => {
     setExploreTab('brand');
@@ -26,21 +40,42 @@ export default function ProductDetail() {
     }
   }, [state.detailProductId]);
 
-  if (!p || state.detailProductId === null) return null;
+  // Autoplay images every 5 seconds
+  useEffect(() => {
+    if (!hasMultipleImages) return;
+    const interval = setInterval(() => {
+      selectGalleryImage(galleryIndex + 1);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [galleryIndex, hasMultipleImages]);
 
-  const galleryImages = Array.isArray(p.images) && p.images.length > 0
-    ? p.images
-    : Array.isArray(p.gallery) && p.gallery.length > 0
-      ? p.gallery
-      : [p.image];
-  const hasMultipleImages = galleryImages.length > 1;
-  const selectGalleryImage = (index) => setGalleryIndex((index + galleryImages.length) % galleryImages.length);
+  // Mouse drag handlers for sliding images
+  const handleGalleryMouseDown = (event) => {
+    if (!hasMultipleImages) return;
+    touchStartX.current = event.clientX;
+  };
+
+  const handleGalleryMouseUp = (event) => {
+    if (!hasMultipleImages || touchStartX.current === null) return;
+    const movement = event.clientX - touchStartX.current;
+    if (Math.abs(movement) > 40) {
+      selectGalleryImage(galleryIndex + (movement < 0 ? 1 : -1));
+    }
+    touchStartX.current = null;
+  };
+
+  const handleGalleryMouseLeave = () => {
+    touchStartX.current = null;
+  };
+
   const handleGalleryTouchEnd = (event) => {
     if (!hasMultipleImages || touchStartX.current === null) return;
     const movement = event.changedTouches[0].clientX - touchStartX.current;
     if (Math.abs(movement) > 40) selectGalleryImage(galleryIndex + (movement < 0 ? 1 : -1));
     touchStartX.current = null;
   };
+
+  if (!p || state.detailProductId === null) return null;
 
   // ── Tab data ──────────────────────────────────────────────────────────────
   const sameBrandProducts = state.products
@@ -214,10 +249,17 @@ export default function ProductDetail() {
             className="product-gallery-main"
             onTouchStart={(event) => { touchStartX.current = event.touches[0].clientX; }}
             onTouchEnd={handleGalleryTouchEnd}
+            onMouseDown={handleGalleryMouseDown}
+            onMouseUp={handleGalleryMouseUp}
+            onMouseLeave={handleGalleryMouseLeave}
+            style={{ cursor: hasMultipleImages ? 'grab' : 'default', userSelect: 'none' }}
           >
-            {hasMultipleImages && <button className="gallery-arrow gallery-prev" onClick={() => selectGalleryImage(galleryIndex - 1)} aria-label="Previous product image">‹</button>}
-            <img src={galleryImages[galleryIndex]} alt={`${p.name} view ${galleryIndex + 1}`} />
-            {hasMultipleImages && <button className="gallery-arrow gallery-next" onClick={() => selectGalleryImage(galleryIndex + 1)} aria-label="Next product image">›</button>}
+            <img 
+              src={galleryImages[galleryIndex]} 
+              alt={`${p.name} view ${galleryIndex + 1}`} 
+              draggable="false" 
+              style={{ pointerEvents: 'none', userSelect: 'none' }}
+            />
           </div>
 
           <div className="product-gallery-thumbs" aria-label="Product image thumbnails">
