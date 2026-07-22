@@ -326,24 +326,36 @@ export function StoreProvider({ children }) {
     fetchAdminOrders();
   }, [state.adminAuthenticated]);
 
-  // URL synchronization for product details modal
+  // URL synchronization for modals (product details and user profile)
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     // Check query params on initial mount/page load
     const url = new URL(window.location.href);
     const prodId = url.searchParams.get('product');
+    const showProfile = url.searchParams.get('profile') === 'true';
     if (prodId) {
       dispatch({ type: 'SHOW_DETAIL', id: prodId });
+    }
+    if (showProfile) {
+      dispatch({ type: 'OPEN_USER_PROFILE' });
     }
 
     const handlePopState = () => {
       const currentUrl = new URL(window.location.href);
       const currentProdId = currentUrl.searchParams.get('product');
+      const currentShowProfile = currentUrl.searchParams.get('profile') === 'true';
+
       if (currentProdId) {
         dispatch({ type: 'SHOW_DETAIL', id: currentProdId });
       } else {
         dispatch({ type: 'HIDE_DETAIL' });
+      }
+
+      if (currentShowProfile) {
+        dispatch({ type: 'OPEN_USER_PROFILE' });
+      } else {
+        dispatch({ type: 'CLOSE_USER_PROFILE' });
       }
     };
 
@@ -368,6 +380,24 @@ export function StoreProvider({ children }) {
       }
     }
   }, [state.detailProductId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    const currentParam = url.searchParams.get('profile');
+
+    if (state.userProfileOpen) {
+      if (currentParam !== 'true') {
+        url.searchParams.set('profile', 'true');
+        window.history.pushState({ userProfileOpen: true }, '', url.pathname + url.search + url.hash);
+      }
+    } else {
+      if (currentParam !== null) {
+        url.searchParams.delete('profile');
+        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+      }
+    }
+  }, [state.userProfileOpen]);
 
   const getFiltered = useCallback(() => {
     let arr = state.products.filter(p => {
