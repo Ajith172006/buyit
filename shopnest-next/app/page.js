@@ -22,6 +22,7 @@ import MobileNav from '@/components/MobileNav';
 import HorizontalProducts from '@/components/HorizontalProducts';
 import OfferStrip from '@/components/OfferStrip';
 import VideoModal from '@/components/VideoModal';
+import OrderConfirmation from '@/components/OrderConfirmation';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -111,6 +112,7 @@ export default function HomePage() {
       <UserAuthModal />
       <UserProfileModal />
       <VideoModal />
+      <OrderConfirmation />
       <Toast />
       <MobileNav />
     </div>

@@ -226,7 +226,6 @@ export default function CheckoutModal() {
 
       if (data.success) {
         dispatch({ type: 'PLACE_ORDER', order: data.data });
-        showToast('🎉 Order placed successfully! Order ID: ' + data.data._id);
         if (subMethod === 'PAY_LATER') {
           setPayLaterBalance(prev => prev - cartTotal);
         }

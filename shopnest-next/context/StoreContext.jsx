@@ -37,6 +37,8 @@ const initialState = {
   userProfile: null,
   authLoading: true,
   videoModalOpen: false,
+  orderConfirmationOpen: false,
+  lastOrder: null,
 };
 
 function reducer(state, action) {
@@ -67,7 +69,11 @@ function reducer(state, action) {
         cart: [],
         checkoutOpen: false,
         cartOpen: false,
+        orderConfirmationOpen: true,
+        lastOrder: action.order,
       };
+    case 'CLOSE_ORDER_CONFIRMATION':
+      return { ...state, orderConfirmationOpen: false, lastOrder: null };
     case 'SET_PRODUCTS':
       return { ...state, products: action.products };
     case 'SET_ADMIN_ORDERS':
