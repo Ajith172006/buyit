@@ -31,8 +31,7 @@ export default function UserProfileModal() {
 
     setLoadingOrders(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/?$/, '') || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const res = await fetch(`${apiUrl}/api/orders/user/${state.userProfile.id}`);
+      const res = await fetch(`/api/orders/user/${state.userProfile.id}`);
       if (res.ok) {
         const json = await res.json();
         if (json.success) setOrders(json.data);

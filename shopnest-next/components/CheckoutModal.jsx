@@ -120,8 +120,7 @@ export default function CheckoutModal() {
 
     if (subMethod === 'STRIPE') {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/?$/, '') || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        const res = await fetch(`${apiUrl}/api/payments/create-checkout-session`, {
+        const res = await fetch('/api/payments/create-checkout-session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -133,10 +132,10 @@ export default function CheckoutModal() {
         if (data.url) {
           window.location.href = data.url;
         } else {
-          showToast('Failed to start checkout session');
+          showToast('Failed to start Stripe checkout. Please try another payment method.');
         }
       } catch (err) {
-        showToast('Payment error. Please try again.');
+        showToast('Stripe payment error. Please try another payment method.');
       }
       return;
     }
@@ -193,10 +192,14 @@ export default function CheckoutModal() {
       paymentStatusValue = 'pending';
     }
 
-    // Process Mock Order placement in backend
+    // Process order placement via Next.js API route (works on Vercel without a separate backend)
     try {
+      const userId = state.userProfile?.id || state.userProfile?._id || null;
+      // Only include userId if it's a real MongoDB ObjectId (not demo- or Firebase- id)
+      const isValidMongoId = userId && /^[a-f\d]{24}$/i.test(userId);
+
       const order = {
-        userId: state.userProfile?.id || state.userProfile?._id || null,
+        ...(isValidMongoId ? { userId } : {}),
         items: state.cart.map(item => ({
           productId: item.id,
           name: item.name,
@@ -214,25 +217,24 @@ export default function CheckoutModal() {
         orderStatus: 'pending'
       };
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/?$/, '') || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const res = await fetch(`${apiUrl}/api/orders`, {
+      const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(order)
       });
-      
       const data = await res.json();
+
       if (data.success) {
         dispatch({ type: 'PLACE_ORDER', order: data.data });
         showToast('🎉 Order placed successfully! Order ID: ' + data.data._id);
-        // If pay later was used, mock deduct the balance
         if (subMethod === 'PAY_LATER') {
           setPayLaterBalance(prev => prev - cartTotal);
         }
       } else {
-        showToast('Failed to place order: ' + data.message);
+        showToast('Failed to place order: ' + (data.message || 'Unknown error'));
       }
     } catch (err) {
+      console.error('Order placement error:', err);
       showToast('Order placement error. Please try again.');
     }
   };

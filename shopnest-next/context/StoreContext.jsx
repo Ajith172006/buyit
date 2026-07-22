@@ -259,8 +259,7 @@ export function StoreProvider({ children }) {
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/?$/, '') || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        const res = await fetch(`${apiUrl}/api/products`);
+        const res = await fetch('/api/products');
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.data) {
@@ -297,9 +296,8 @@ export function StoreProvider({ children }) {
     async function fetchAdminOrders() {
       if (!state.adminAuthenticated) return;
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/?$/, '') || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
         const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
-        const res = await fetch(`${apiUrl}/api/orders`, {
+        const res = await fetch('/api/orders', {
           headers: { 'Authorization': `Bearer ${adminKey}` },
         });
         if (res.ok) {

@@ -21,12 +21,11 @@ export default function SellerPage() {
   const [newProduct, setNewProduct] = useState({ name: '', price: '', stock: '', category: 'Electronics' });
   const [showAddForm, setShowAddForm] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/?$/, '') || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch(`${apiUrl}/api/products`);
+      const res = await fetch('/api/products');
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
@@ -48,7 +47,7 @@ export default function SellerPage() {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch(`${apiUrl}/api/orders`, {
+      const res = await fetch('/api/orders', {
         headers: { 'Authorization': `Bearer ${adminKey}` },
       });
       if (res.ok) {

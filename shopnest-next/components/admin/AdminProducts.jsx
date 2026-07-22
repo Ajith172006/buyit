@@ -55,7 +55,6 @@ export default function AdminProducts() {
       description: form.desc || 'Quality product',
     };
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/?$/, '') || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
 
     if (editingId) {
@@ -63,7 +62,7 @@ export default function AdminProducts() {
       let updatedP = null;
       let apiSuccess = false;
       try {
-        const res = await fetch(`${apiUrl}/api/products/${editingId}`, {
+        const res = await fetch(`/api/products/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminKey}` },
           body: JSON.stringify(product)
@@ -110,7 +109,7 @@ export default function AdminProducts() {
       let newP = null;
       let apiSuccess = false;
       try {
-        const res = await fetch(`${apiUrl}/api/products`, {
+        const res = await fetch('/api/products', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminKey}` },
           body: JSON.stringify(product)
@@ -156,12 +155,9 @@ export default function AdminProducts() {
 
   const deleteProduct = async (id) => {
     if (!confirm('Delete this product?')) return;
-    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/api\/?$/, '') || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-    const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
-    
     let apiSuccess = false;
     try {
-      const res = await fetch(`${apiUrl}/api/products/${id}`, {
+      const res = await fetch(`/api/products/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${adminKey}` },
       });
