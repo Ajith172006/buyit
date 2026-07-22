@@ -12,6 +12,8 @@ export default function ProductDetail() {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [exploreTab, setExploreTab] = useState('brand');
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const detailRef = useRef();
   const touchStartX = useRef(null);
 
@@ -35,6 +37,8 @@ export default function ProductDetail() {
   useEffect(() => {
     setExploreTab('brand');
     setGalleryIndex(0);
+    setDragOffset(0);
+    setIsDragging(false);
     if (detailRef.current) {
       detailRef.current.scrollTo(0, 0);
     }
@@ -42,37 +46,69 @@ export default function ProductDetail() {
 
   // Autoplay images every 5 seconds
   useEffect(() => {
-    if (!hasMultipleImages) return;
+    if (!hasMultipleImages || isDragging) return;
     const interval = setInterval(() => {
       selectGalleryImage(galleryIndex + 1);
     }, 5000);
     return () => clearInterval(interval);
-  }, [galleryIndex, hasMultipleImages]);
+  }, [galleryIndex, hasMultipleImages, isDragging]);
 
   // Mouse drag handlers for sliding images
   const handleGalleryMouseDown = (event) => {
     if (!hasMultipleImages) return;
     touchStartX.current = event.clientX;
+    setIsDragging(true);
+  };
+
+  const handleGalleryMouseMove = (event) => {
+    if (!isDragging || touchStartX.current === null) return;
+    const offset = event.clientX - touchStartX.current;
+    setDragOffset(offset);
   };
 
   const handleGalleryMouseUp = (event) => {
-    if (!hasMultipleImages || touchStartX.current === null) return;
+    if (!isDragging || touchStartX.current === null) return;
     const movement = event.clientX - touchStartX.current;
-    if (Math.abs(movement) > 40) {
-      selectGalleryImage(galleryIndex + (movement < 0 ? 1 : -1));
+    if (movement > 40) {
+      selectGalleryImage(galleryIndex - 1);
+    } else if (movement < -40) {
+      selectGalleryImage(galleryIndex + 1);
     }
     touchStartX.current = null;
+    setIsDragging(false);
+    setDragOffset(0);
   };
 
   const handleGalleryMouseLeave = () => {
     touchStartX.current = null;
+    setIsDragging(false);
+    setDragOffset(0);
+  };
+
+  // Touch swipe handlers for mobile devices
+  const handleGalleryTouchStart = (event) => {
+    if (!hasMultipleImages) return;
+    touchStartX.current = event.touches[0].clientX;
+    setIsDragging(true);
+  };
+
+  const handleGalleryTouchMove = (event) => {
+    if (!isDragging || touchStartX.current === null) return;
+    const offset = event.touches[0].clientX - touchStartX.current;
+    setDragOffset(offset);
   };
 
   const handleGalleryTouchEnd = (event) => {
-    if (!hasMultipleImages || touchStartX.current === null) return;
+    if (!isDragging || touchStartX.current === null) return;
     const movement = event.changedTouches[0].clientX - touchStartX.current;
-    if (Math.abs(movement) > 40) selectGalleryImage(galleryIndex + (movement < 0 ? 1 : -1));
+    if (movement > 40) {
+      selectGalleryImage(galleryIndex - 1);
+    } else if (movement < -40) {
+      selectGalleryImage(galleryIndex + 1);
+    }
     touchStartX.current = null;
+    setIsDragging(false);
+    setDragOffset(0);
   };
 
   if (!p || state.detailProductId === null) return null;
@@ -247,19 +283,51 @@ export default function ProductDetail() {
         <div className="detail-img-col">
           <div
             className="product-gallery-main"
-            onTouchStart={(event) => { touchStartX.current = event.touches[0].clientX; }}
+            onTouchStart={handleGalleryTouchStart}
+            onTouchMove={handleGalleryTouchMove}
             onTouchEnd={handleGalleryTouchEnd}
             onMouseDown={handleGalleryMouseDown}
+            onMouseMove={handleGalleryMouseMove}
             onMouseUp={handleGalleryMouseUp}
             onMouseLeave={handleGalleryMouseLeave}
-            style={{ cursor: hasMultipleImages ? 'grab' : 'default', userSelect: 'none' }}
+            style={{ cursor: hasMultipleImages ? 'grab' : 'default', userSelect: 'none', overflow: 'hidden', position: 'relative' }}
           >
-            <img 
-              src={galleryImages[galleryIndex]} 
-              alt={`${p.name} view ${galleryIndex + 1}`} 
-              draggable="false" 
-              style={{ pointerEvents: 'none', userSelect: 'none' }}
-            />
+            <div
+              style={{
+                display: 'flex',
+                transition: isDragging ? 'none' : 'transform 0.45s cubic-bezier(0.25, 1, 0.5, 1)',
+                transform: `translateX(calc(-${galleryIndex * 100}% + ${dragOffset}px))`,
+                width: '100%',
+                height: '100%'
+              }}
+            >
+              {galleryImages.map((image, index) => (
+                <div
+                  key={`${image}-slide-${index}`}
+                  style={{
+                    flex: '0 0 100%',
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <img 
+                    src={image} 
+                    alt={`${p.name} view ${index + 1}`} 
+                    draggable="false" 
+                    style={{ 
+                      maxWidth: '100%', 
+                      maxHeight: '100%', 
+                      objectFit: 'contain',
+                      pointerEvents: 'none', 
+                      userSelect: 'none' 
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="product-gallery-thumbs" aria-label="Product image thumbnails">
