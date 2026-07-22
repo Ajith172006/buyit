@@ -251,7 +251,7 @@ export default function ProductDetail() {
   const displayReviews = reviewsList.length > 0 ? reviewsList : fallbackReviews;
 
   return (
-    <div id="detail-view" ref={detailRef}>
+    <div id="detail-view" ref={detailRef} data-lenis-prevent>
 
       {/* ── Breadcrumb bar ── */}
       <div className="detail-top">
