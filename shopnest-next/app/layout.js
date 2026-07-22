@@ -30,7 +30,7 @@ export default function RootLayout({ children }) {
           `}
         </Script>
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <SmoothScroll>
           <StoreProvider>
             {children}
