@@ -340,7 +340,7 @@ export const initialProducts = [
     id:'65d1a2b3c4d5e6f7a8b9c023', name:'Organic California Almonds 500g', brand:'Happilo', category:'Grocery',
     price:499, mrp:599, rating:4.6, reviews:12934, stock:500, discount:16,
     desc:'Raw whole raw almonds rich in protein, fiber, and healthy fats',
-    image:'https://images.unsplash.com/photo-1508061253366-f7da158b6d96?w=400&q=80',
+    image:'https://images.unsplash.com/photo-1574570173583-e9b5a3961893?w=400&q=80',
   },
 ];
 
