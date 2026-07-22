@@ -54,18 +54,6 @@ export default function UserAuthModal() {
     setTimeout(resetForm, 300);
   };
 
-  const handleQuickDemoLogin = () => {
-    const demoProfile = {
-      id: 'demo-user-101', name: 'Ajith (Demo User)', email: 'demo@shopnest.com', phone: '9876543210', age: 24,
-      address: '123 Main St, Anna Nagar, Chennai, Tamil Nadu - 600040',
-      savedAddresses: [{ label: 'Home', doorNo: '123', street: 'Main St, Anna Nagar', city: 'Chennai', state: 'Tamil Nadu', pincode: '600040', isDefault: true }],
-      wishlist: [],
-    };
-    localStorage.setItem('buyit_user_session', JSON.stringify(demoProfile));
-    dispatch({ type: 'HYDRATE_USER', profile: demoProfile });
-    showToast('Logged in as Demo User!');
-    closeAuth();
-  };
 
   const requireFirebase = () => {
     if (isFirebaseConfigured) return true;
@@ -205,8 +193,8 @@ export default function UserAuthModal() {
         <div className="ua-brand" style={{ fontStyle: 'italic' }}>BuyIt <span className="plus-color">Plus ✦</span></div>
         {step === 1 ? (
           <div className="ua-step">
-            <h2>Welcome to BuyIt</h2><p className="ua-sub">Sign in to continue your shopping journey</p>
-            <button type="button" onClick={handleQuickDemoLogin} disabled={loading} className="ua-btn" style={{ background: '#10b981', marginBottom: 12 }}>⚡ Quick Demo Login</button>
+            <h2>Welcome to BuyIT</h2>
+            <p className="ua-sub">Sign in to continue your shopping journey</p>
             <button type="button" onClick={handleGoogleLogin} disabled={loading} className="ua-btn google-btn" style={{ background: '#fff', color: '#333', border: '1px solid #ccc', marginBottom: 8 }}>Sign in with Google</button>
           </div>
         ) : (

@@ -348,7 +348,7 @@ const sampleProducts = [
     description: 'Raw whole raw almonds rich in protein, fiber, and healthy fats',
     price: 499,
     originalPrice: 599,
-    image: 'https://images.unsplash.com/photo-1508061253366-f7da158b6d96?w=400&q=80',
+    image: 'https://images.unsplash.com/photo-1574570173583-e9b5a3961893?w=400&q=80',
     category: 'Grocery',
     stock: 500,
     discount: 16,
