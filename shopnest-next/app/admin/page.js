@@ -7,88 +7,8 @@ import AdminProducts from '@/components/admin/AdminProducts';
 import AdminOrders from '@/components/admin/AdminOrders';
 import AdminCustomers from '@/components/admin/AdminCustomers';
 import AdminAnalytics from '@/components/admin/AdminAnalytics';
-import Link from 'next/link';
+import AdminLoginForm from '@/components/admin/AdminLoginForm';
 
-const AUTH_KEY = 'buyit_admin_auth';
-
-const tabs = [
-  { key: 'dashboard', icon: '📊', label: 'Dashboard' },
-  { key: 'products',  icon: '📦', label: 'Products' },
-  { key: 'orders',    icon: '🛍', label: 'Orders' },
-  { key: 'customers', icon: '👥', label: 'Customers' },
-  { key: 'analytics', icon: '📈', label: 'Analytics' },
-  { key: 'settings',  icon: '⚙', label: 'Settings' },
-];
-
-/* ─── Login Screen ─────────────────────────────────────────────── */
-function AdminLogin({ onSuccess }) {
-  const [password, setPassword] = useState('');
-  const [error, setError]       = useState('');
-  const [shake, setShake]       = useState(false);
-  const [loading, setLoading]   = useState(false);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setLoading(true);
-    // Password read from env — never hardcoded in client bundle
-    const adminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin@buyit';
-    setTimeout(() => {
-      if (password === adminPassword) {
-        localStorage.setItem(AUTH_KEY, '1');
-        onSuccess();
-      } else {
-        setShake(true);
-        setError('Incorrect password. Please try again.');
-        setPassword('');
-        setTimeout(() => setShake(false), 600);
-      }
-      setLoading(false);
-    }, 350);
-  };
-
-  return (
-    <div className="admin-route-login-bg">
-      <div className={`admin-route-login-card${shake ? ' shake' : ''}`}>
-        {/* Branding */}
-        <div className="arl-brand">
-          <span className="arl-logo">🛍</span>
-          <span className="arl-logo-text">BuyIt <span>Pro ✦</span></span>
-        </div>
-
-        <div className="arl-lock">🔐</div>
-        <h1 className="arl-title">Admin Portal</h1>
-        <p className="arl-sub">Restricted access — authorised personnel only</p>
-
-        <form onSubmit={handleSubmit} className="arl-form">
-          <div className="arl-field">
-            <label htmlFor="admin-pw">Password</label>
-            <input
-              id="admin-pw"
-              type="password"
-              value={password}
-              onChange={(e) => { setPassword(e.target.value); setError(''); }}
-              placeholder="Enter admin password"
-              autoFocus
-              autoComplete="current-password"
-            />
-          </div>
-
-          {error && <p className="arl-error">⚠ {error}</p>}
-
-          <button
-            type="submit"
-            className="arl-submit"
-            disabled={!password || loading}
-          >
-            {loading ? 'Verifying…' : 'Access Dashboard →'}
-          </button>
-        </form>
-
-        <Link href="/" className="arl-back">← Back to store</Link>
-      </div>
-    </div>
-  );
-}
 
 /* ─── Settings Tab ─────────────────────────────────────────────── */
 function AdminSettings() {
@@ -204,6 +124,6 @@ export default function AdminPage() {
     );
   }
 
-  if (!authed) return <AdminLogin onSuccess={() => setAuthed(true)} />;
+  if (!authed) return <AdminLoginForm onSuccess={() => setAuthed(true)} />;
   return <AdminDashboardPage onLogout={handleLogout} />;
 }
