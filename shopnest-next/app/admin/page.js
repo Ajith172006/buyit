@@ -183,8 +183,11 @@ export default function AdminPage() {
 
   // Check localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem(AUTH_KEY);
-    setAuthed(saved === '1');
+    const handle = requestAnimationFrame(() => {
+      const saved = localStorage.getItem(AUTH_KEY);
+      setAuthed(saved === '1');
+    });
+    return () => cancelAnimationFrame(handle);
   }, []);
 
   const handleLogout = () => {

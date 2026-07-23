@@ -72,10 +72,17 @@ export default function SellerPage() {
   };
 
   useEffect(() => {
+    let active = true;
     if (isRegistered) {
-      fetchProducts();
-      fetchOrders();
+      const loadData = async () => {
+        if (active) {
+          await fetchProducts();
+          await fetchOrders();
+        }
+      };
+      loadData();
     }
+    return () => { active = false; };
   }, [isRegistered]);
 
   const showToastMsg = (msg) => {

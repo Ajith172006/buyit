@@ -1,5 +1,6 @@
 'use client';
 import { useStore } from '@/context/StoreContext';
+import { firebaseAuthHeaders } from '@/lib/firebase-auth-headers';
 import { formatNumber } from '@/lib/utils';
 
 export default function ProductCard({ product: p }) {
@@ -19,7 +20,7 @@ export default function ProductCard({ product: p }) {
     try {
       await fetch('/api/wishlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await firebaseAuthHeaders()) },
         body: JSON.stringify({ email: state.userProfile.email, productId: p.id })
       });
     } catch (err) {

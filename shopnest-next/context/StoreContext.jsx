@@ -4,6 +4,7 @@ import { createContext, useContext, useReducer, useCallback, useEffect } from 'r
 import { initialProducts } from '@/lib/data';
 import { onAuthStateChanged } from 'firebase/auth';
 import { firebaseAuth } from '@/lib/firebaseClient';
+import { firebaseAuthHeaders } from '@/lib/firebase-auth-headers';
 
 const StoreContext = createContext(null);
 
@@ -66,6 +67,7 @@ function reducer(state, action) {
       return {
         ...state,
         orders: [action.order, ...state.orders],
+        adminOrders: [action.order, ...state.adminOrders],
         cart: [],
         checkoutOpen: false,
         cartOpen: false,
@@ -150,8 +152,8 @@ function reducer(state, action) {
     case 'UPDATE_ORDER_STATUS':
       return {
         ...state,
-        orders: state.orders.map(o => o.id === action.id ? { ...o, status: action.status } : o),
-        adminOrders: state.adminOrders.map(o => o.id === action.id ? { ...o, status: action.status } : o),
+        orders: state.orders.map(o => (o.id === action.id || o._id === action.id || o.rawId === action.id) ? { ...o, status: action.status, orderStatus: action.status } : o),
+        adminOrders: state.adminOrders.map(o => (o.id === action.id || o._id === action.id || o.rawId === action.id) ? { ...o, status: action.status, orderStatus: action.status } : o),
       };
     case 'OPEN_USER_LOGIN':
       return { ...state, userLoginOpen: true };
@@ -195,66 +197,43 @@ function reducer(state, action) {
 export function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  // Firebase auth state listener hydrates the session on load and clears on sign-out.
+  // Firebase authentication hydrates the local customer profile.
   useEffect(() => {
-    // Check if we have a locally stored demo/guest session first
     const localProfileStr = typeof window !== 'undefined' ? localStorage.getItem('buyit_user_session') : null;
     let localProfile = null;
-    if (localProfileStr) {
-      try {
-        localProfile = JSON.parse(localProfileStr);
-        if (localProfile && localProfile.email) {
-          dispatch({ type: 'HYDRATE_USER', profile: localProfile });
-        }
-      } catch (e) {
-        console.error('Error parsing local user profile:', e);
-      }
-    }
-
-    if (!firebaseAuth) {
-      if (!localProfile) dispatch({ type: 'USER_LOGOUT' });
-      dispatch({ type: 'SET_AUTH_LOADING', loading: false });
-      return undefined;
-    }
-
+    try { localProfile = localProfileStr ? JSON.parse(localProfileStr) : null; if (localProfile?.email) dispatch({ type: 'HYDRATE_USER', profile: localProfile }); } catch { localProfile = null; }
+    if (!firebaseAuth) { if (!localProfile) dispatch({ type: 'USER_LOGOUT' }); dispatch({ type: 'SET_AUTH_LOADING', loading: false }); return undefined; }
     const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
       dispatch({ type: 'SET_AUTH_LOADING', loading: true });
       if (user?.email) {
-        try {
-          const res = await fetch(`/api/user?email=${encodeURIComponent(user.email)}`);
-          
-          if (!res.ok) {
-            dispatch({ type: 'OPEN_USER_LOGIN' });
-            dispatch({ type: 'SET_AUTH_LOADING', loading: false });
-            return;
-          }
+        let profileToHydrate = localProfile || {
+          id: user.uid,
+          name: user.displayName || user.email.split('@')[0],
+          email: user.email,
+          phone: '',
+          address: '',
+          savedAddresses: [],
+          wishlist: [],
+        };
 
-          const data = await res.json();
-          if (data.success && data.data) {
-            const p = data.data;
-            if (p.phone && p.address) {
+        try {
+          const res = await fetch('/api/user', { headers: await firebaseAuthHeaders() });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.data) {
+              profileToHydrate = data.data;
               if (typeof window !== 'undefined') {
-                localStorage.setItem('buyit_user_session', JSON.stringify(p));
+                localStorage.setItem('buyit_user_session', JSON.stringify(profileToHydrate));
               }
-              dispatch({ type: 'HYDRATE_USER', profile: p });
-            } else {
-              dispatch({ type: 'OPEN_USER_LOGIN' });
             }
-          } else {
-            dispatch({ type: 'OPEN_USER_LOGIN' });
           }
         } catch (e) {
-          console.error('Error fetching user profile:', e);
-          dispatch({ type: 'OPEN_USER_LOGIN' });
+          console.error('Error fetching user profile from server:', e);
         }
-      } else {
-        // Keep the intentionally local demo profile; otherwise clear the account state.
-        if (!localProfile) {
-          dispatch({ type: 'USER_LOGOUT' });
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('buyit_user_session');
-          }
-        }
+
+        dispatch({ type: 'HYDRATE_USER', profile: profileToHydrate });
+      } else if (!localProfile) {
+        dispatch({ type: 'USER_LOGOUT' });
       }
       dispatch({ type: 'SET_AUTH_LOADING', loading: false });
     });
@@ -268,10 +247,10 @@ export function StoreProvider({ children }) {
         const res = await fetch('/api/products');
         if (res.ok) {
           const json = await res.json();
-          if (json.success && json.data) {
+          if (json.success && Array.isArray(json.data) && json.data.length > 0) {
             const mappedProducts = json.data.map(p => ({
               ...p,
-              id: p._id,
+              id: p.id,
               name: p.name,
               brand: p.brand || 'Generic',
               category: p.category,
@@ -286,6 +265,8 @@ export function StoreProvider({ children }) {
               images: Array.isArray(p.images) && p.images.length > 0 ? p.images : [p.image]
             }));
             dispatch({ type: 'SET_PRODUCTS', products: mappedProducts });
+          } else {
+            console.warn('Catalog is empty; keeping the bundled product catalog until database seeding completes.');
           }
         } else {
           console.warn('Failed to fetch products from backend, falling back to static data.');
@@ -297,10 +278,9 @@ export function StoreProvider({ children }) {
     fetchProducts();
   }, []);
 
-  // Fetch admin orders when admin is authenticated
+  // Fetch admin orders for admin panel
   useEffect(() => {
     async function fetchAdminOrders() {
-      if (!state.adminAuthenticated) return;
       try {
         const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
         const res = await fetch('/api/orders', {
@@ -308,23 +288,12 @@ export function StoreProvider({ children }) {
         });
         if (res.ok) {
           const json = await res.json();
-          if (json.success && json.data) {
-            // Map the backend orders to the format expected by the admin panel
-            const mappedOrders = json.data.map(o => ({
-              id: o._id,
-              customer: o.userId?.name || 'Guest',
-              phone: o.userId?.phone || '',
-              items: o.items.reduce((acc, i) => acc + i.quantity, 0),
-              total: o.totalAmount,
-              payment: o.paymentMethod || 'Online',
-              date: new Date(o.createdAt).toLocaleDateString(),
-              status: o.orderStatus || 'pending'
-            }));
-            dispatch({ type: 'SET_ADMIN_ORDERS', orders: mappedOrders });
+          if (json.success && Array.isArray(json.data)) {
+            dispatch({ type: 'SET_ADMIN_ORDERS', orders: json.data });
           }
         }
       } catch (err) {
-        console.warn('Error fetching admin orders (backend might be offline):', err.message);
+        console.warn('Error fetching admin orders:', err.message);
       }
     }
     fetchAdminOrders();
@@ -460,8 +429,29 @@ export function StoreProvider({ children }) {
   const cartTotal = state.cart.reduce((s, c) => s + c.price * c.qty, 0);
   const cartCount = state.cart.reduce((s, c) => s + c.qty, 0);
   
-  // Remove sampleOrders and use fetched adminOrders
-  const allOrders = state.adminOrders;
+  // Combine and normalize adminOrders and user orders for Admin Panel
+  const combinedRawOrders = [...(state.adminOrders || []), ...(state.orders || [])];
+  const uniqueOrdersMap = new Map();
+  combinedRawOrders.forEach(o => {
+    if (!o) return;
+    const key = o.id || o._id;
+    if (key && !uniqueOrdersMap.has(key)) {
+      uniqueOrdersMap.set(key, o);
+    }
+  });
+
+  const allOrders = Array.from(uniqueOrdersMap.values()).map((o, idx) => {
+    const id = o.id || o._id || `ORD-${1000 + idx}`;
+    const customer = o.customer || o.shippingAddress?.name || o.user?.name || o.userId?.name || 'Customer';
+    const phone = o.phone || o.shippingAddress?.phone || o.user?.phone || o.userId?.phone || '—';
+    const items = typeof o.items === 'string' ? o.items : Array.isArray(o.items) ? `${o.items.length} item(s)` : '1 item';
+    const total = o.total !== undefined ? o.total : (o.totalAmount !== undefined ? o.totalAmount : 0);
+    const payment = o.payment || o.paymentMethod || 'Online';
+    const date = o.date || (o.createdAt ? new Date(o.createdAt).toLocaleDateString() : new Date().toLocaleDateString());
+    const status = (o.status || o.orderStatus || 'pending').toLowerCase();
+
+    return { id, rawId: o._id || o.id, customer, phone, items, total, payment, date, status, raw: o };
+  });
 
   return (
     <StoreContext.Provider value={{ state, dispatch, getFiltered, showToast, cartTotal, cartCount, allOrders }}>

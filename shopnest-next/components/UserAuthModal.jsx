@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut } from 'firebase/auth';
 import { useStore } from '@/context/StoreContext';
 import { firebaseAuth, isFirebaseConfigured } from '@/lib/firebaseClient';
+import { firebaseAuthHeaders } from '@/lib/firebase-auth-headers';
 
 const emptyAddress = { doorNo: '', street: '', city: '', district: '', state: '', pincode: '' };
 
@@ -15,32 +16,6 @@ export default function UserAuthModal() {
   const [address, setAddress] = useState(emptyAddress);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!state.userLoginOpen) return;
-
-    if (firebaseAuth) {
-      getRedirectResult(firebaseAuth)
-        .then(async (result) => {
-          if (result?.user) {
-            await loadExistingProfile(result.user);
-          }
-        })
-        .catch((err) => {
-          console.error('Firebase redirect sign-in error:', err);
-        });
-    }
-
-    const user = firebaseAuth?.currentUser;
-    if (user) {
-      setProfile((current) => ({ ...current, name: user.displayName || '' }));
-      setStep(3);
-    } else {
-      setStep(1);
-    }
-  }, [state.userLoginOpen]);
-
-  if (!state.userLoginOpen) return null;
-
   const resetForm = () => {
     setStep(1);
     setPhone('');
@@ -49,11 +24,10 @@ export default function UserAuthModal() {
   };
 
   const closeAuth = async () => {
-    if (step === 3 && !state.userAuthenticated && firebaseAuth) await signOut(firebaseAuth);
+    if (!state.userAuthenticated && firebaseAuth) await signOut(firebaseAuth);
     dispatch({ type: 'CLOSE_USER_LOGIN' });
     setTimeout(resetForm, 300);
   };
-
 
   const requireFirebase = () => {
     if (isFirebaseConfigured) return true;
@@ -63,7 +37,7 @@ export default function UserAuthModal() {
 
   const loadExistingProfile = async (user) => {
     try {
-      const response = await fetch(`/api/user?email=${encodeURIComponent(user.email)}`);
+      const response = await fetch('/api/user', { headers: await firebaseAuthHeaders() });
       const result = response.ok ? await response.json() : null;
       if (result?.success && result.data?.phone && result.data?.address) {
         dispatch({ type: 'HYDRATE_USER', profile: result.data });
@@ -72,12 +46,40 @@ export default function UserAuthModal() {
         return true;
       }
     } catch (error) {
-      console.error('Error fetching user profile from MongoDB:', error);
+      console.error('Error fetching user profile:', error);
     }
-    setProfile((current) => ({ ...current, name: user.displayName || '' }));
-    setStep(3);
+    setProfile((current) => ({ ...current, name: current.name || user.displayName || '' }));
+    setStep(2);
     return false;
   };
+
+  useEffect(() => {
+    if (!state.userLoginOpen) return;
+
+    const checkUser = async () => {
+      if (firebaseAuth) {
+        try {
+          const result = await getRedirectResult(firebaseAuth);
+          if (result?.user) {
+            await loadExistingProfile(result.user);
+            return;
+          }
+        } catch (err) {
+          console.error('Firebase redirect sign-in error:', err);
+        }
+      }
+
+      const user = firebaseAuth?.currentUser;
+      if (user && (!state.userProfile?.phone || !state.userProfile?.address)) {
+        setProfile((current) => (current.name ? current : { ...current, name: user.displayName || '' }));
+        setStep(2);
+      } else if (!user) {
+        setStep(1);
+      }
+    };
+
+    checkUser();
+  }, [state.userLoginOpen, state.userProfile]);
 
   const handleGoogleLogin = async () => {
     if (!requireFirebase()) return;
@@ -86,36 +88,13 @@ export default function UserAuthModal() {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       const result = await signInWithPopup(firebaseAuth, provider);
-      if (result?.user) {
-        await loadExistingProfile(result.user);
-      }
+      if (result?.user) await loadExistingProfile(result.user);
     } catch (error) {
       console.error('Google Sign-In Error:', error);
       const errorCode = error?.code || '';
       const errorMessage = error?.message || '';
-
-      if (errorCode === 'auth/popup-closed-by-user' || errorCode === 'auth/cancelled-popup-request') {
-        showToast('Google sign-in popup was closed.');
-      } else if (errorCode === 'auth/unauthorized-domain') {
-        showToast('Domain not authorized in Firebase Console (Auth > Settings > Authorized domains).');
-      } else if (errorCode === 'auth/operation-not-allowed') {
-        showToast('Google sign-in provider is disabled in Firebase Console.');
-      } else if (errorCode === 'auth/popup-blocked') {
-        showToast('Popup blocked by browser. Attempting redirect sign-in...');
-        try {
-          const provider = new GoogleAuthProvider();
-          await signInWithRedirect(firebaseAuth, provider);
-        } catch (redirectErr) {
-          console.error('Google redirect error:', redirectErr);
-          showToast('Google sign-in failed. Please allow popups or try again.');
-        }
-      } else if (errorCode === 'auth/invalid-api-key' || errorCode === 'auth/api-key-not-valid') {
-        showToast('Invalid Firebase API key in environment variables.');
-      } else if (errorCode === 'auth/network-request-failed') {
-        showToast('Network error during Google sign-in. Please check connection.');
-      } else {
-        showToast(errorMessage ? `Google sign-in error: ${errorMessage}` : 'Google sign-in failed. Please try again later.');
-      }
+      if (errorCode === 'auth/popup-blocked') { try { await signInWithRedirect(firebaseAuth, new GoogleAuthProvider()); } catch { showToast('Google sign-in failed. Please allow popups or try again.'); } }
+      else showToast(errorMessage ? `Google sign-in error: ${errorMessage}` : 'Google sign-in failed. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -152,7 +131,7 @@ export default function UserAuthModal() {
     try {
       const response = await fetch('/api/user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await firebaseAuthHeaders()) },
         body: JSON.stringify({ email, name: profile.name, phone: cleanPhone, age: profile.age, address }),
       });
 
@@ -186,6 +165,8 @@ export default function UserAuthModal() {
     }
   };
 
+  if (!state.userLoginOpen) return null;
+
   return (
     <div id="user-auth-overlay" onClick={(event) => event.target.id === 'user-auth-overlay' && closeAuth()}>
       <div className="user-auth-modal" style={{ width: '420px' }}>
@@ -212,4 +193,3 @@ export default function UserAuthModal() {
     </div>
   );
 }
-

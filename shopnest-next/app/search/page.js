@@ -18,9 +18,12 @@ export default function SearchPage() {
   const [query, setQuery] = useState('');
 
   useEffect(() => {
-    const nextQuery = new URLSearchParams(window.location.search).get('q') || '';
-    setQuery(nextQuery);
-    dispatch({ type: 'SET_SEARCH', search: nextQuery });
+    const handle = requestAnimationFrame(() => {
+      const nextQuery = new URLSearchParams(window.location.search).get('q') || '';
+      setQuery(nextQuery);
+      dispatch({ type: 'SET_SEARCH', search: nextQuery });
+    });
+    return () => cancelAnimationFrame(handle);
   }, [dispatch]);
 
   const results = useMemo(() => {

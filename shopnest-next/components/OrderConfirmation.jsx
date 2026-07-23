@@ -13,14 +13,15 @@ export default function OrderConfirmation() {
 
   useEffect(() => {
     if (state.orderConfirmationOpen) {
-      setVisible(false);
-      setTickDone(false);
-      setContentVisible(false);
-      requestAnimationFrame(() => {
+      const handle = requestAnimationFrame(() => {
+        setVisible(false);
+        setTickDone(false);
+        setContentVisible(false);
         setTimeout(() => setVisible(true), 30);
         setTimeout(() => setTickDone(true), 900);
         setTimeout(() => setContentVisible(true), 1100);
       });
+      return () => cancelAnimationFrame(handle);
     }
   }, [state.orderConfirmationOpen]);
 
@@ -28,7 +29,7 @@ export default function OrderConfirmation() {
 
   if (!state.orderConfirmationOpen) return null;
 
-  const orderId      = order?._id || order?.id || ('ORD-' + Date.now());
+  const orderId      = order?._id || order?.id || 'ORD-SUCCESS';
   const orderItems   = order?.items || [];
   const totalAmount  = order?.totalAmount || 0;
   const paymentMethod = order?.paymentMethod || 'Online';

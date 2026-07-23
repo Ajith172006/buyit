@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useStore } from '@/context/StoreContext';
 import { firebaseAuth } from '@/lib/firebaseClient';
 import { signOut } from 'firebase/auth';
+import { firebaseAuthHeaders } from '@/lib/firebase-auth-headers';
 import { formatNumber } from '@/lib/utils';
 import ProductCard from './ProductCard';
 import Link from 'next/link';
@@ -17,12 +18,6 @@ export default function UserProfileModal() {
   const [showAddAddress, setShowAddAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({ doorNo: '', street: '', city: '', district: '', state: '', pincode: '' });
 
-  useEffect(() => {
-    if (state.userProfileOpen && state.userProfile && activeTab === 'orders') {
-      fetchOrders();
-    }
-  }, [state.userProfileOpen, activeTab]);
-
   const fetchOrders = async () => {
     if (state.userProfile?.id?.startsWith('demo-')) {
       setOrders([]);
@@ -31,7 +26,7 @@ export default function UserProfileModal() {
 
     setLoadingOrders(true);
     try {
-      const res = await fetch(`/api/orders/user/${state.userProfile.id}`);
+      const res = await fetch(`/api/orders/user/${state.userProfile.id}`, { headers: await firebaseAuthHeaders() });
       if (res.ok) {
         const json = await res.json();
         if (json.success) setOrders(json.data);
@@ -41,6 +36,17 @@ export default function UserProfileModal() {
     }
     setLoadingOrders(false);
   };
+
+  useEffect(() => {
+    let isMounted = true;
+    if (state.userProfileOpen && state.userProfile && activeTab === 'orders') {
+      const load = async () => {
+        if (isMounted) await fetchOrders();
+      };
+      load();
+    }
+    return () => { isMounted = false; };
+  }, [state.userProfileOpen, activeTab, state.userProfile]);
 
   const handleLogout = async () => {
     if (firebaseAuth) await signOut(firebaseAuth);
@@ -61,11 +67,8 @@ export default function UserProfileModal() {
     try {
       const res = await fetch('/api/user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: state.userProfile.email,
-          address: newAddress
-        })
+        headers: { 'Content-Type': 'application/json', ...(await firebaseAuthHeaders()) },
+        body: JSON.stringify({ email: state.userProfile.email, address: newAddress })
       });
       const data = await res.json();
       if (data.success) {
@@ -138,7 +141,7 @@ export default function UserProfileModal() {
                 {loadingOrders ? (
                   <p>Loading your orders...</p>
                 ) : orders.length === 0 ? (
-                  <p>You haven't placed any orders yet.</p>
+                  <p>You haven&apos;t placed any orders yet.</p>
                 ) : (
                   <table className="admin-table">
                     <thead>

@@ -1,5 +1,6 @@
 'use client';
 import { useStore } from '@/context/StoreContext';
+import { firebaseAuthHeaders } from '@/lib/firebase-auth-headers';
 import { formatNumber } from '@/lib/utils';
 import { useState, useEffect, useRef } from 'react';
 import ProductCard from './ProductCard';
@@ -35,13 +36,16 @@ export default function ProductDetail() {
 
   // Reset explore tab and scroll to top whenever a new product is opened
   useEffect(() => {
-    setExploreTab('brand');
-    setGalleryIndex(0);
-    setDragOffset(0);
-    setIsDragging(false);
-    if (detailRef.current) {
-      detailRef.current.scrollTo(0, 0);
-    }
+    const handle = requestAnimationFrame(() => {
+      setExploreTab('brand');
+      setGalleryIndex(0);
+      setDragOffset(0);
+      setIsDragging(false);
+      if (detailRef.current) {
+        detailRef.current.scrollTo(0, 0);
+      }
+    });
+    return () => cancelAnimationFrame(handle);
   }, [state.detailProductId]);
 
   // Autoplay images every 5 seconds
@@ -166,7 +170,7 @@ export default function ProductDetail() {
     try {
       await fetch('/api/wishlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await firebaseAuthHeaders()) },
         body: JSON.stringify({ email: state.userProfile.email, productId: p.id }),
       });
     } catch (err) {
@@ -189,7 +193,7 @@ export default function ProductDetail() {
     try {
       const res = await fetch('/api/reviews', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await firebaseAuthHeaders()) },
         body: JSON.stringify({
           email: state.userProfile.email,
           productId: p.id,
@@ -243,9 +247,9 @@ export default function ProductDetail() {
 
   // Default fallback reviews when no real reviews exist
   const fallbackReviews = [
-    { user: 'Amit Sharma', rating: 5, text: 'Amazing product! The build quality is premium and it works flawlessly. Highly satisfied!', date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
-    { user: 'Priyanka Sen', rating: 4, text: 'Great value for money. Delivery was fast and the product is exactly as described.', date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-    { user: 'Rahul Verma', rating: 5, text: 'Fantastic experience. ShopNest delivers outstanding quality every single time.', date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
+    { user: 'Amit Sharma', rating: 5, text: 'Amazing product! The build quality is premium and it works flawlessly. Highly satisfied!', date: '2026-07-20' },
+    { user: 'Priyanka Sen', rating: 4, text: 'Great value for money. Delivery was fast and the product is exactly as described.', date: '2026-07-16' },
+    { user: 'Rahul Verma', rating: 5, text: 'Fantastic experience. ShopNest delivers outstanding quality every single time.', date: '2026-07-09' },
   ];
   const reviewsList = Array.isArray(p.reviews) ? p.reviews : [];
   const displayReviews = reviewsList.length > 0 ? reviewsList : fallbackReviews;
