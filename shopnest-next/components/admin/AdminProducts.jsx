@@ -4,6 +4,8 @@ import { useStore } from '@/context/StoreContext';
 import { formatNumber } from '@/lib/utils';
 import { categories } from '@/lib/data';
 
+const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
+
 export default function AdminProducts() {
   const { state, dispatch, showToast } = useStore();
   const [form, setForm] = useState({
@@ -54,8 +56,6 @@ export default function AdminProducts() {
       stock: parseInt(form.stock) || 50,
       description: form.desc || 'Quality product',
     };
-
-    const adminKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY || 'changeme-in-production';
 
     if (editingId) {
       // UPDATE existing product

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/app'; // handles both App Router or window navigation
 import Link from 'next/link';
 
 const AUTH_KEY = 'buyit_admin_auth';

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useStore } from '@/context/StoreContext';
 import AdminDashboard from '@/components/admin/AdminDashboard';
 import AdminProducts from '@/components/admin/AdminProducts';
@@ -9,6 +10,16 @@ import AdminCustomers from '@/components/admin/AdminCustomers';
 import AdminAnalytics from '@/components/admin/AdminAnalytics';
 import AdminLoginForm from '@/components/admin/AdminLoginForm';
 
+const AUTH_KEY = 'buyit_admin_auth';
+
+const tabs = [
+  { key: 'dashboard', icon: '📊', label: 'Dashboard' },
+  { key: 'products',  icon: '📦', label: 'Products' },
+  { key: 'orders',    icon: '🛒', label: 'Orders' },
+  { key: 'customers', icon: '👥', label: 'Customers' },
+  { key: 'analytics', icon: '📈', label: 'Analytics' },
+  { key: 'settings',  icon: '⚙️', label: 'Settings' },
+];
 
 /* ─── Settings Tab ─────────────────────────────────────────────── */
 function AdminSettings() {
@@ -103,11 +114,8 @@ export default function AdminPage() {
 
   // Check localStorage on mount
   useEffect(() => {
-    const handle = requestAnimationFrame(() => {
-      const saved = localStorage.getItem(AUTH_KEY);
-      setAuthed(saved === '1');
-    });
-    return () => cancelAnimationFrame(handle);
+    const saved = localStorage.getItem(AUTH_KEY);
+    setAuthed(saved === '1');
   }, []);
 
   const handleLogout = () => {
